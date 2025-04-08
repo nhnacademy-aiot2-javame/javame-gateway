@@ -40,8 +40,9 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           source: "target/*.jar"
-          target: "~aiot2-team3/gateway/gateway.jar"
+          target: "~/gateway"
           rm: false
+
 
       - name: Execute Gateway Startup Script
         uses: appleboy/ssh-action@master
