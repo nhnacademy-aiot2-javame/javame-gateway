@@ -52,5 +52,6 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script_stop: true
           script: |
-            chmod +x ~/gateway/startup.sh
-            ~/gateway/startup.sh
+            cd ~/gateway
+            chmod +x startup.sh
+            ./startup.sh
