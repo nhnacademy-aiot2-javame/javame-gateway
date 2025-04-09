@@ -1,6 +1,5 @@
 package com.nhnacademy.javamegateway.config;
 
-import com.nhnacademy.javamegateway.filter.JwtAuthenticationFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -9,24 +8,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RouteLocatorConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    public RouteLocatorConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
-
     @Bean
-    public RouteLocator myRoute(RouteLocatorBuilder builder) {
-
+    public RouteLocator routeLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                .route("member-api",
-                        predicateSpec -> predicateSpec.path("/api/member/**")
-                                .uri("lb://MEMBER-API")
-                )
-                .route("auth-api",
-                        predicateSpec -> predicateSpec.path("/api/auth/**")
-                                .uri("lb:AUTH-API//")
-                )
+                .route("auth-api", r -> r.path("/api/auth/**")
+                        .filters(f -> f.stripPrefix(2))
+                        .uri("lb://AUTH-API"))
+                .route("member-api", r -> r.path("/api/member/**")
+                        .filters(f -> f.stripPrefix(2))
+                        .uri("lb://MEMBER-API"))
                 .build();
     }
 }

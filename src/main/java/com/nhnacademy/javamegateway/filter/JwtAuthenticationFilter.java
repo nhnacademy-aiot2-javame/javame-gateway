@@ -4,19 +4,21 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.apache.http.HttpHeaders;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebFilter;
-import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 import java.util.Base64;
+import java.util.List;
 
 @Component
-public class JwtAuthenticationFilter implements WebFilter {
+public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final String secretKey;
 
@@ -24,34 +26,41 @@ public class JwtAuthenticationFilter implements WebFilter {
         this.secretKey = secretKey;
     }
 
+    private static final List<String> WHITE_LIST = List.of(
+            "/api/auth/register",
+            "/api/auth/login"
+    );
+
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        // 요청에서 JWT 토큰을 추출
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+        String path = exchange.getRequest().getPath().toString();
         String token = extractJwtFromRequest(request);
 
-        //JWT 토큰이 없으면 401 Unauthorized 에러를 반환
-        if (token == null) {
+        if (token == null || !validateJwtToken(token)) {
             return unauthorizedResponse(exchange);
         }
 
-        // JWT 토큰이 있으면 검증
-        if (validateJwtToken(token)) {
-            Claims claims = getClaimFromToken(token);
-            if (claims != null) {
-                // 인증 정보 설정 (예: 사용자 ID, 권한 등)
-                exchange.getAttributes().put("claims", claims);
-            }
-        } else {
-            return unauthorizedResponse(exchange);
+        if (WHITE_LIST.contains(path)) {
+            return chain.filter(exchange);
+        }
+
+        Claims claims = getClaimFromToken(token);
+        if (claims != null) {
+            exchange.getAttributes().put("claims", claims);
         }
 
         return chain.filter(exchange);
     }
 
+    @Override
+    public int getOrder() {
+        return -1;
+    }
+
     private Claims getClaimFromToken(String token) {
-        byte[] secretKeyBytes = Base64.getDecoder().decode(secretKey);
         try {
+            byte[] secretKeyBytes = Base64.getDecoder().decode(secretKey);
             return Jwts.parserBuilder()
                     .setSigningKey(secretKeyBytes)
                     .build()
@@ -62,35 +71,30 @@ public class JwtAuthenticationFilter implements WebFilter {
         }
     }
 
-    // 요청에서 JWT 토큰을 추출하는 메서드
     private String extractJwtFromRequest(ServerHttpRequest request) {
         String bearerToken = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7); // "Bearer " 이후의 토큰 문자열 반환
+            return bearerToken.substring(7);
         }
         return null;
     }
 
-    // JWT 토큰을 검증하는 메서드
     private boolean validateJwtToken(String token) {
         try {
             byte[] secretKeyBytes = Base64.getDecoder().decode(secretKey);
             Jwts.parserBuilder()
-                    .setSigningKey(secretKeyBytes) // 시그니처 검증을  위한 비밀키 설정
+                    .setSigningKey(secretKeyBytes)
                     .build()
-                    .parseClaimsJws(token); // 유효한 토큰인 경우 정상적으로 파싱됨
+                    .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    // 401 Unauthorized 에러를 반환하는 메서드
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         return response.setComplete();
-
     }
-
 }
