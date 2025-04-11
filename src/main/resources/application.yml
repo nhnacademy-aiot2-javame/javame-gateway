@@ -10,6 +10,7 @@ spring:
               - "http://localhost:10259"
               - "http://localhost:10260"
               - "https://javame.live"
+              - "http://127.0.0.1:10251"
             allowedMethods:
               - GET
               - POST
