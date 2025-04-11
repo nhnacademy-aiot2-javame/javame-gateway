@@ -12,7 +12,7 @@ public class RouteLocatorConfig {
     public RouteLocator routeLocator(RouteLocatorBuilder builder) {
         return builder.routes()
                 .route("auth-api", r -> r.path("/api/auth/**")
-                        .filters(f -> f.stripPrefix(2))
+                        .filters(f -> f.stripPrefix(1))
                         .uri("lb://AUTH-API"))
                 .route("member-api", r -> r.path("/api/member/**")
                         .filters(f -> f.stripPrefix(2))
