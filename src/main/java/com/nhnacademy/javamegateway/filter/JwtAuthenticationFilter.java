@@ -37,12 +37,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getPath().toString();
         String token = extractJwtFromRequest(request);
 
-        if (token == null || !validateJwtToken(token)) {
-            return unauthorizedResponse(exchange);
-        }
-
         if (WHITE_LIST.contains(path)) {
             return chain.filter(exchange);
+        }
+
+        if (token == null || !validateJwtToken(token)) {
+            return unauthorizedResponse(exchange);
         }
 
         Claims claims = getClaimFromToken(token);
