@@ -14,7 +14,7 @@ public class RouteLocatorConfig {
                 .route("auth-api", r -> r.path("/api/auth/**")
                         .filters(f -> f.stripPrefix(2))
                         .uri("lb://AUTH-API"))
-                .route("member-api", r -> r.path("/api/member/**")
+                .route("member-api", r -> r.path("/api/members/**")
                         .filters(f -> f.stripPrefix(2))
                         .uri("lb://MEMBER-API"))
                 .build();
