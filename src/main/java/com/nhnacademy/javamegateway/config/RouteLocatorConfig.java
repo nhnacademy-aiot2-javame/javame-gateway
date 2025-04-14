@@ -33,6 +33,10 @@ public class RouteLocatorConfig {
                         //   /login/${segment} : 캡처된 "segment" 문자열을 /login/ 뒤에 붙여서 새로운 경로 생성
                         .filters(f -> f.rewritePath("/api/v1/login/(?<segment>.*)", "/login/${segment}"))
                         .uri("lb://MEMBER-API")) // 대상: MEMBER-API (LoginController가 /login/** 처리)
+
+                // 추가 : SensorController (센서 CRUD)용 라우트
+                .route("iot-api", r -> r.path("/api/sensors")
+                        .uri("lb://JAVAME-TESTIOTSENSOR"))
                 .build();
     }
 }
