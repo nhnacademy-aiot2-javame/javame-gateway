@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**").permitAll()
+                        .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
                         .anyExchange().authenticated()
                 );
 
@@ -31,13 +32,13 @@ public class SecurityConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true); // 요청에 쿠키 포함 허용
-        config.setAllowedOrigins(List.of("http://localhost:10251")); // 허용할 Origin
-        config.addAllowedHeader("*"); // 모든 헤더 허용
-        config.addAllowedMethod("*"); // 모든 HTTP Method 허용 (GET, POST 등)
+        config.setAllowCredentials(true);
+        config.setAllowedOrigins(List.of("http://localhost:10251"));
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config); // 모든 요청 경로에 대해 CORS 적용
+        source.registerCorsConfiguration("/**", config); // 모든 경로에 적용
         return new CorsWebFilter(source);
     }
 }
