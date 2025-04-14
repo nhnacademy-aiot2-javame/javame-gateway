@@ -1,4 +1,3 @@
-.github/workflows/sonarqube.yml
 
 on:
   # schedule:
