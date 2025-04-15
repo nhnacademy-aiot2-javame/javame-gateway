@@ -12,18 +12,16 @@ public class RouteLocatorConfig {
     public RouteLocator routeLocator(RouteLocatorBuilder builder) {
         return builder.routes()
                 // --- Auth API 라우트 ---
-                .route("auth-api", r -> r.path("/api/auth/**") // 외부 경로: /api/auth/**
-                        .filters(f -> f.stripPrefix(1))        // /api 제거 -> 내부 경로: /auth/** (AUTH-API)
+                .route("auth-api", r -> r.path("/api/v1/auth/**") // 외부 경로: /api/auth/**
+                        .filters(f -> f.stripPrefix(2))        // /api 제거 -> 내부 경로: /auth/** (AUTH-API)
                         .uri("lb://AUTH-API"))
-
 
                 // --- MemberController (CRUD)용 라우트 ---
                 .route("member-api-crud", r -> r.path("/api/v1/members/**") // 외부 경로: /api/v1/members/**
                         // 외부 경로와 MemberController의 내부 경로가 동일하므로, 경로 변경 필터 불필요.
                         // 요청을 그대로 MEMBER-API로 전달합니다.
+                        .filters(f -> f.stripPrefix(2))
                         .uri("lb://MEMBER-API")) // 대상: MEMBER-API (MemberController가 /api/v1/members/** 처리)
-
-
 
                 // 추가: LoginController (로그인 정보 조회)용 라우트
                 .route("member-api-login", r -> r.path("/api/v1/login/**") // 외부 경로: /api/v1/login/** (이렇게 외부 노출하기로 결정)
