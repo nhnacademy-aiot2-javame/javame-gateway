@@ -1,43 +1,41 @@
-#
-#spring:
-#  cloud:
-#    gateway:
-#      globalcors:
-#        corsConfigurations:
-#          '[/**]':
-#            allowedOrigins:
-#              - "http://localhost:10251"
-#              - "http://localhost:10256"
-#              - "http://localhost:10259"
-#              - "http://localhost:10260"
-#              - "https://javame.live"
-#              - "http://127.0.0.1:10251"
-#            allowedMethods:
-#              - GET
-#              - POST
-#              - PUT
-#              - DELETE
-#              - OPTIONS
-#            allowedHeaders: "*"
-#            allowCredentials: true
-#      routes:
-#        - id: auth-api
-#          uri: lb://AUTH-API
-#          predicates:
-#            - Path=/api/auth/**
-#          filters:
-#            - StripPrefix=2
-#        - id: member-api
-#          uri: lb://MEMBER-API
-#          predicates:
-#            - Path=/api/member/**
-#          filters:
-#            - StripPrefix=2
-#
-#eureka:
-#  client:
-#    fetch-registry: true
-#    service-url:
-#      defaultZone: http://admin:1234@localhost:10260/eureka
-#  instance:
-#    prefer-ip-address: true
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:10271"
+              - "http://localhost:10272"
+              - "http://localhost:10273"
+              - "http://localhost:10274"
+              - "http://localhost:10275"
+              - "http://localhost:10276"
+              - "http://localhost:10277"
+              - "http://localhost:10278"
+              - "http://localhost:10279"
+              - "https://javame.live"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+      routes:
+        - id: auth-api
+          uri: lb://AUTH-API
+          predicates:
+            - Path=/api/auth/**
+
+        - id: member-api
+          uri: lb://MEMBER-API
+          predicates:
+            - Path=/api/v1/login/**
+
+        - id: environment-api
+          uri: lb://ENVIRONMENT-API
+          predicates:
+            - Path=/api/v1/environment/**

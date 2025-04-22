@@ -24,7 +24,6 @@ public class SecurityConfig {
                         .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
                         .anyExchange().authenticated()
                 );
-
         return http.build();
     }
 
@@ -33,12 +32,23 @@ public class SecurityConfig {
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of("http://localhost:10251"));
+        config.setAllowedOrigins(List.of(
+                "http://localhost:10271",
+                "http://localhost:10272",
+                "http://localhost:10273",
+                "http://localhost:10274",
+                "http://localhost:10275",
+                "http://localhost:10276",
+                "http://localhost:10277",
+                "http://localhost:10278",
+                "http://localhost:10279",
+                "https://javame.live"
+        ));
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config); // 모든 경로에 적용
+        source.registerCorsConfiguration("/**", config);
         return new CorsWebFilter(source);
     }
 }
