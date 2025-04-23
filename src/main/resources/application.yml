@@ -29,13 +29,33 @@ spring:
           uri: lb://AUTH-API
           predicates:
             - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /$\{segment}
 
         - id: member-api
           uri: lb://MEMBER-API
           predicates:
             - Path=/api/v1/login/**
+          filters:
+            - RewritePath=/api/v1/login/(?<segment>.*), /$\{segment}
 
         - id: environment-api
           uri: lb://ENVIRONMENT-API
           predicates:
             - Path=/api/v1/environment/**
+          filters:
+            - RewritePath=/api/v1/environment/(?<segment>.*), /$\{segment}
+
+        - id: rule-api
+          uri: lb://RULE-API
+          predicates:
+            - Path=/api/v1/rule/**
+          filters:
+            - RewritePath=/api/v1/rule/(?<segment>.*), /$\{segment}
+
+        - id: ai-api
+          uri: lb://AI-API
+          predicates:
+            - Path=/api/v1/ai/**
+          filters:
+            - RewritePath=/api/v1/ai/(?<segment>.*), /$\{segment}
