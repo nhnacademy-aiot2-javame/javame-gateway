@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**").permitAll()
                         .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
-                        .anyExchange().authenticated()
+                        .anyExchange().permitAll()
                 );
         return http.build();
     }
