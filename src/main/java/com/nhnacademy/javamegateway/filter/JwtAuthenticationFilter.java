@@ -55,10 +55,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String token = extractJwtFromRequest(request); // 토큰 추출
 
         // 토큰이 없거나 유효하지 않으면 401 반환
-        if (token == null || !validateJwtToken(token)) {
-            log.warn("Gateway JWT Filter: Unauthorized access attempt for {}", path);
-            return unauthorizedResponse(exchange); // <<<--- 여기서 401 처리
-        }
+//        if (token == null || !validateJwtToken(token)) {
+//            log.warn("Gateway JWT Filter: Unauthorized access attempt for {}", path);
+//            return unauthorizedResponse(exchange); // <<<--- 여기서 401 처리
+//        }
 
         // --- 3. 토큰 유효 시 추가 작업 (클레임 추출 등) 및 다음 필터 진행 ---
         log.debug("Gateway JWT Filter: JWT validation successful for {}", path);
