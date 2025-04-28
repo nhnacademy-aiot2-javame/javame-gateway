@@ -51,7 +51,7 @@ spring:
           predicates:
             - Path=/api/v1/environment/**
           filters:
-            - RewritePath=/api/v1/environment/(?<segment>.*), /environment/$1
+            - RewritePath=/api/v1/environment/(?<segment>.*), /environment/${segment}
 
         - id: rule-api
           uri: lb://RULE-API
