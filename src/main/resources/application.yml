@@ -30,39 +30,39 @@ spring:
           predicates:
             - Path=/api/v1/auth/**
           filters:
-            - RewritePath=/api/v1/auth/(?<segment>.*), /auth/$\{segment}
+            - RewritePath=/api/v1/auth/(?<segment>.*), /auth/$1
 
         - id: member-api-members
           uri: lb://MEMBER-API
           predicates:
             - Path=/api/v1/members/**
           filters:
-            - RewritePath=/api/v1/members/(?<segment>.*), /members/$\{segment}
+            - RewritePath=/api/v1/members/(?<segment>.*), /members/$1
 
         - id: member-api-companies
           uri: lb://MEMBER-API
           predicates:
             - Path=/api/v1/companies/**
           filters:
-            - RewritePath=/api/v1/companies/(?<segment>.*), /companies/$\{segment}
+            - RewritePath=/api/v1/companies/(?<segment>.*), /companies/$1
 
         - id: environment-api
           uri: lb://ENVIRONMENT-API
           predicates:
             - Path=/api/v1/environment/**
           filters:
-            - RewritePath=/api/v1/environment/(?<segment>.*), /environment/$\{segment}
+            - RewritePath=/api/v1/environment/(?<segment>.*), /environment/$1
 
         - id: rule-api
           uri: lb://RULE-API
           predicates:
             - Path=/api/v1/rule/**
           filters:
-            - RewritePath=/api/v1/rule/(?<segment>.*), /rule/$\{segment}
+            - RewritePath=/api/v1/rule/(?<segment>.*), /rule/$1
 
         - id: ai-api
           uri: lb://AI-API
           predicates:
             - Path=/api/v1/ai/**
           filters:
-            - RewritePath=/api/v1/ai/(?<segment>.*), /ai/$\{segment}
+            - RewritePath=/api/v1/ai/(?<segment>.*), /ai/$1
