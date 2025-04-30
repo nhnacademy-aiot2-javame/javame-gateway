@@ -42,6 +42,16 @@ public class SecurityConfig {
                 "http://localhost:10277",
                 "http://localhost:10278",
                 "http://localhost:10279",
+                "http://localhost:10280",
+                "http://localhost:10281",
+                "http://localhost:10282",
+                "http://localhost:10283",
+                "http://localhost:10284",
+                "http://localhost:10285",
+                "http://localhost:10286",
+                "http://localhost:10287",
+                "http://localhost:10288",
+                "http://localhost:10289",
                 "https://javame.live"
         ));
         config.addAllowedHeader("*");
