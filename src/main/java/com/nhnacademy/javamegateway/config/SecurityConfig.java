@@ -20,7 +20,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/api/auth/**").permitAll()
+                        .pathMatchers("/api/v1/auth/**", "/auth/**").permitAll()
                         .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
                         .anyExchange().permitAll()
                 );
