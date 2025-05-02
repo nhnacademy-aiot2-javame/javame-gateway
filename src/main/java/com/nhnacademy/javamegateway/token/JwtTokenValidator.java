@@ -19,7 +19,7 @@ import java.util.Date;
  */
 @Getter
 @Slf4j
-public class JwtTokenProvider {
+public class JwtTokenValidator {
     /**
      * Access Token 유효 시간 (30분).
      */
@@ -44,46 +44,15 @@ public class JwtTokenProvider {
      *
      * @param secretKey Base64로 인코딩된 비밀 키
      */
-    public JwtTokenProvider(@Value("${jwt.secret}")String secretKey) {
+    public JwtTokenValidator(@Value("${jwt.secret}")String secretKey) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey); //디코딩
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // 토큰 생성
-    public JwtTokenDto generateTokenDto(String userEmail, String userRole) {
-        if (StringUtils.isEmpty(userEmail)) {
-            throw new GenerateTokenDtoException(userEmail);
-        }
-        if (StringUtils.isEmpty(userRole)) {
-            throw new GenerateTokenDtoException(userRole);
-        }
-
-        Date now = new Date();
-        Date exp = new Date(now.getTime() + ACCESS_TOKEN_EXPIRE_TIME); //토큰 만료기간
-        log.debug("Expiration Time: {}", exp);
-
-        String accessToken = Jwts.builder()
-                .subject(userEmail) // JWT 주체, 사용자 Email
-                .claim("role", userRole)
-                .issuedAt(now)
-                .expiration(exp) // JWT 만료 시간 설정
-                .signWith(key)
-                .compact();
-        log.debug("accessToken: {}", accessToken);
-
-        String refreshToken = Jwts.builder()
-                .subject(userEmail)
-                .claim("role", userRole)
-                .expiration(new Date(now.getTime() + REFRESH_TOKEN_EXPIRE_TIME))
-                .signWith(key)
-                .compact();
-        log.debug("refreshToken: {}", refreshToken);
-
-        return new JwtTokenDto(accessToken, refreshToken);
-    }
-
     public String resolveTokenFromCookie(ServerWebExchange exchange) {
-        HttpCookie tokenCookie = exchange.getRequest().getCookies().get("")
+
+        HttpCookie tokenCookie = exchange.getRequest().getCookies().getFirst("token");
+
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
