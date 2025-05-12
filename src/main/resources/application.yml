@@ -5,16 +5,48 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-                - "http://localhost:10271"
-                - "http://localhost:10272"
-                - "http://localhost:10273"
-                - "http://localhost:10274"
-                - "http://localhost:10275"
-                - "http://localhost:10276"
-                - "http://localhost:10277"
-                - "http://localhost:10278"
-                - "http://localhost:10279"
-                - "http://javame.live"
+              - "https://s2.java21.net:10271"
+              - "https://s2.java21.net:10272"
+              - "https://s2.java21.net:10273"
+              - "https://s2.java21.net:10274"
+              - "https://s2.java21.net:10275"
+              - "https://s2.java21.net:10276"
+              - "https://s2.java21.net:10277"
+              - "https://s2.java21.net:10278"
+              - "https://s2.java21.net:10279"
+              - "https://s2.java21.net:10280"
+              - "https://s2.java21.net:10281"
+              - "https://s2.java21.net:10282"
+              - "https://s2.java21.net:10283"
+              - "https://s2.java21.net:10284"
+              - "https://s2.java21.net:10285"
+              - "https://s2.java21.net:10286"
+              - "https://s2.java21.net:10287"
+              - "https://s2.java21.net:10288"
+              - "https://s2.java21.net:10289"
+              - "https://s2.java21.net:10290"
+              - "https://javame.live"
+              - "http://s2.java21.net:10271"
+              - "http://s2.java21.net:10272"
+              - "http://s2.java21.net:10273"
+              - "http://s2.java21.net:10274"
+              - "http://s2.java21.net:10275"
+              - "http://s2.java21.net:10276"
+              - "http://s2.java21.net:10277"
+              - "http://s2.java21.net:10278"
+              - "http://s2.java21.net:10279"
+              - "http://s2.java21.net:10280"
+              - "http://s2.java21.net:10281"
+              - "http://s2.java21.net:10282"
+              - "http://s2.java21.net:10283"
+              - "http://s2.java21.net:10284"
+              - "http://s2.java21.net:10286"
+              - "http://s2.java21.net:10287"
+              - "http://s2.java21.net:10288"
+              - "http://s2.java21.net:10289"
+              - "http://s2.java21.net:10290"
+              - "http://javame.live"
+              - "http://s2.java21.net:10285"
             allowedMethods:
               - GET
               - POST
@@ -30,40 +62,39 @@ spring:
           predicates:
             - Path=/api/v1/auth/**
           filters:
-            - RewritePath="/api/v1/auth/(?<segment>.*), /auth/${segment}"
+            - RewritePath=/api/v1/auth/(?<segment>.*), /auth/$1
 
         - id: member-api-members
           uri: lb://MEMBER-API
           predicates:
             - Path=/api/v1/members/**
           filters:
-            - RewritePath="/api/v1/members/(?<segment>.*), /members/${segment}"
+            - RewritePath=/api/v1/members/(?<segment>.*), /members/$1
 
         - id: member-api-companies
           uri: lb://MEMBER-API
           predicates:
             - Path=/api/v1/companies/**
           filters:
-            - RewritePath="/api/v1/companies/(?<segment>.*), /companies/${segment}"
+            - RewritePath=/api/v1/companies/(?<segment>.*), /companies/$1
 
         - id: environment-api
           uri: lb://ENVIRONMENT-API
           predicates:
             - Path=/api/v1/environment/**
           filters:
-            - RewritePath=/api/v1/environment/(?<segment>.*),/environment/${segment}
+            - RewritePath=/api/v1/environment/(?<segment>.*), /environment/${segment}
 
         - id: rule-api
           uri: lb://RULE-API
           predicates:
             - Path=/api/v1/rule/**
           filters:
-            - RewritePath="/api/v1/rule/(?<segment>.*), /rule/${segment}"
+            - RewritePath=/api/v1/rule/(?<segment>.*), /rule/$1
 
         - id: ai-api
           uri: lb://AI-API
           predicates:
             - Path=/api/v1/ai/**
           filters:
-            - RewritePath="/api/v1/ai/(?<segment>.*), /ai/${segment}"
-
+            - RewritePath=/api/v1/ai/(?<segment>.*), /ai/$1
