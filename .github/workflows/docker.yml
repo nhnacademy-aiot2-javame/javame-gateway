@@ -4,15 +4,13 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+  
    
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      SERVICE_NAME: javame-gateway-api
+      SERVICE_NAME: javame-gateway
 
     steps:
       # Checkout the repository
@@ -43,18 +41,18 @@ jobs:
       - name: Build & Push Docker Image
         run: |
             IMAGE_TAG=${{ github.sha }}
-            docker build -t ygw1026/javame-gateway-api:$IMAGE_TAG .
-            docker push ygw1026/javame-gateway-api:$IMAGE_TAG
+            docker build -t ygw1026/javame-gateway:$IMAGE_TAG .
+            docker push ygw1026/javame-gateway:$IMAGE_TAG
             echo "GATEWAY_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
       # Deploy the application using Docker-Compose
       - name: Deploy to Remote Server via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
-            host: ${{ secrets.REMOTE_HOST }}
-            username: ${{ secrets.REMOTE_USER }}
+            host: ${{ secrets.SSH_IP }}
+            username: ${{ secrets.SSH_ID }}
             port: 8822
-            key: ${{ secrets.PRIVATE_KEY }}
+            key: ${{ secrets.SSH_KEY }}
             script: |
               COMPOSE_DIR="/home/aiot2/aiot2-team3/docker/javame"
               cd $COMPOSE_DIR
@@ -68,15 +66,7 @@ jobs:
               echo "GATEWAY_IMAGE_TAG=${{ env.GATEWAY_IMAGE_TAG }}" >> .env
               fi
               
-              RUNNING=$(docker-compose ps -q $SERVICE_NAME)
-              
-              if [ -n "$RUNNING" ]; then
-                echo "$SERVICE_NAME is running → stop & rm & up only this service"
-                docker-compose stop $SERVICE_NAME
-                docker-compose rm -f $SERVICE_NAME
-                docker-compose up -d $SERVICE_NAME
-              else
-                echo "$SERVICE_NAME is not running → full restart"
-                docker-compose down
-                docker-compose up -d
-              fi
+              docker-compose stop $SERVICE_NAME
+              docker-compose rm -f $SERVICE_NAME
+              docker-compose up -d $SERVICE_NAME
+            
