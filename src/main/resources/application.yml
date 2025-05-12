@@ -5,16 +5,16 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - "http://localhost:10271"
-              - "http://localhost:10272"
-              - "http://localhost:10273"
-              - "http://localhost:10274"
-              - "http://localhost:10275"
-              - "http://localhost:10276"
-              - "http://localhost:10277"
-              - "http://localhost:10278"
-              - "http://localhost:10279"
-              - "https://javame.live"
+                - "http://localhost:10271"
+                - "http://localhost:10272"
+                - "http://localhost:10273"
+                - "http://localhost:10274"
+                - "http://localhost:10275"
+                - "http://localhost:10276"
+                - "http://localhost:10277"
+                - "http://localhost:10278"
+                - "http://localhost:10279"
+                - "http://javame.live"
             allowedMethods:
               - GET
               - POST
