@@ -1,18 +1,25 @@
 package com.nhnacademy.javamegateway.token;
-import com.nhnacademy.javamegateway.exception.GenerateTokenDtoException;
-import io.jsonwebtoken.*;
+
+import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
+import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
+import com.nhnacademy.javamegateway.exception.MissingTokenException;
+import com.nhnacademy.javamegateway.exception.TokenExpiredException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpCookie;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ServerWebExchange;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
-import java.util.Date;
 
 /**
  * Jwt 토큰 생성을 위한 Provider 클래스.
@@ -20,16 +27,6 @@ import java.util.Date;
 @Getter
 @Slf4j
 public class JwtTokenValidator {
-    /**
-     * Access Token 유효 시간 (30분).
-     */
-    private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 30;
-
-    /**
-     * Refresh Token 유효 시간 (7일).
-     */
-    private static final long REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 7;
-
     /**
      * java.io.Serializable: 객체를 파일로 저장하거나 네트워크를 통해 전송할 수 있도록 변환하는 인터페이스.
      * 객체를 "문자열"처럼 변환해줌.
@@ -49,66 +46,109 @@ public class JwtTokenValidator {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
+    /**
+     * front 에서 HttpOnlyCookie로 넘겨준 accessToken, refreshToken을 꺼내 넘깁니다.
+     *
+     * @param exchange Gateway 에서 사용하는 WebFlux 전용 객체.
+     * @return Cookie 에서 추출한 토큰.
+     */
     public String resolveTokenFromCookie(ServerWebExchange exchange) {
+        MultiValueMap<String, HttpCookie> cookies = exchange.getRequest().getCookies();
 
-        HttpCookie tokenCookie = exchange.getRequest().getCookies().getFirst("token");
+        HttpCookie accessTokenCookie = cookies.getFirst("accessToken");
+        HttpCookie refreshTokenCookie = cookies.getFirst("refreshToken");
 
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().toLowerCase().contains("token")) {
-                    return cookie.getValue();
-                } else throw new TokenNotFoundFromCookie();
+        if (accessTokenCookie != null) {
+            String accessToken = accessTokenCookie.getValue();
+            if (validateToken(accessToken)) {
+                return accessToken;
+            } else {
+              // 만료 시 만료되었다고 에러 응답 보냄.
+                throw new TokenExpiredException("AccessToken expired");
+            }
+        } else if (refreshTokenCookie != null) {
+            String refreshToken = refreshTokenCookie.getValue();
+            if (validateToken(refreshToken)) {
+                throw new AccessTokenReissueRequiredException(
+                        "Access token expired, but refresh token valid"
+                );
+            } else {
+                // refreshToken도 만료되었다면 로그인이 필요하다고 응답을 보냄.
+                throw new TokenExpiredException("Refresh token expired");
             }
         }
-        return null;
+        throw new AuthenticationCredentialsNotFoundException("No token found in cookies");
     }
 
-    public String getUserEmailFromToken(String accessToken) {
-        if (StringUtils.isEmpty(accessToken)) {
-            throw new MissingTokenException(accessToken);
-        }
-        Claims claims = parseClaims(accessToken);
+    /**
+     *
+     * @param token 쿠키에서 꺼낸 토큰입니다.
+     * @return 토큰에서 사용자 이메일값을 반환하는 메소드입니다.
+     */
+    public String getUserEmailFromToken(String token) {
+        validateTokenPresence(token);
+        Claims claims = parseValidClaims(token);
         return claims.getSubject();
     }
 
+    /**
+     *
+     * @param token 쿠키에서 꺼낸 토큰입니다.
+     * @return 토큰에서 사용자 역할을 반환하는 메소드입니다.
+     */
     public String getRoleIdFromToken(String token) {
-        if (StringUtils.isEmpty(token)) {
-            throw new MissingTokenException(token);
-        }
-        Claims claims = parseClaims(token);
+        validateTokenPresence(token);
+        Claims claims = parseValidClaims(token);
         return claims.get("role", String.class);
     }
 
+    /**
+     * jwt token이 유효한지, 서명이 올바른지 등에 대해 검증하는 메소드입니다.
+     * @param token 쿠키에서 꺼낸 토큰입니다.
+     * @return true, false를 반환합니다.
+     */
     public boolean validateToken(String token) {
         try {
             Jwts.parser().verifyWith((SecretKey) key).build().parseSignedClaims(token);
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-            log.debug("잘못된 JWT 서명입니다.");
+            log.warn("잘못된 JWT 서명입니다.");
         } catch (ExpiredJwtException e) {
-            log.debug("만료된 JWT 토큰입니다.");
+            log.warn("만료된 JWT 토큰입니다.");
         } catch (UnsupportedJwtException e) {
-            log.debug("지원되지 않는 JWT 토큰입니다.");
+            log.warn("지원되지 않는 JWT 토큰입니다.");
         } catch (IllegalArgumentException e) {
-            log.debug("JWT 토큰이 잘못되었습니다.");
+            log.warn("JWT 토큰이 잘못되었습니다.");
         }
         return false;
     }
 
-    private Claims parseClaims(String accessToken) {
-        //JWT가 유효하지 않은 경우 JwtException이 발생함.
+    /**
+     * 토큰 값이 비어있는지 null 값인지 검증하는 메소드입니다.
+     * @param token 쿠키에서 꺼낸 토큰값입니다.
+     */
+    private void validateTokenPresence(String token) {
+        if (token == null || token.isBlank()) {
+            throw new MissingTokenException(token);
+        }
+    }
+
+    /**
+     * JWT를 Parse 하는 메소드입니다.
+     * @param token 쿠키에서 꺼낸 jwt 토큰입니다.
+     * @return 정보값이 들어있는 claims를 반환합니다.
+     */
+    private Claims parseValidClaims(String token) {
         try {
             return Jwts.parser()
                     //Key가 HMAC 알고리즘을 사용하면 비밀키로 서명하고, 검증할 때도 같은 키를 써야되기 때문에 비밀키로 검증해야함.
                     .verifyWith((SecretKey) key)
                     .build()
-                    .parseSignedClaims(accessToken)
+                    .parseSignedClaims(token)
                     .getPayload();
         } catch (ExpiredJwtException e) {
             log.warn("JWT 토큰이 만료되었습니다: {}", e.getMessage());
             return e.getClaims();
         }
     }
-
 }
