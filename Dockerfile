@@ -6,6 +6,6 @@ WORKDIR /app
 
 COPY target/*.jar javame-gateway-api.jar
 
-EXPOSE 10273
+EXPOSE 10279
 
 CMD ["java", "-jar", "javame-gateway-api.jar"]
