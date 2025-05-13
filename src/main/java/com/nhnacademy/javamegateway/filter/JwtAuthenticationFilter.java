@@ -19,7 +19,6 @@ import java.util.List;
 @Slf4j
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
-
     /**
      * 토큰 검증 및 파서역할자.
      */

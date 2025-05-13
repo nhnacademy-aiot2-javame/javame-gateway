@@ -4,6 +4,7 @@ import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredExceptio
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
 import com.nhnacademy.javamegateway.exception.TokenExpiredException;
+import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -13,6 +14,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpCookie;
 import org.springframework.util.MultiValueMap;
@@ -35,15 +37,29 @@ public class JwtTokenValidator {
     private final Key key;
 
     /**
+     *  redis key 값에 추가할 prefix.
+     */
+    @Value("${token.prefix}")
+    private String tokenPrefix;
+
+    /**
+     * Refresh Token 검증을 위한 Repository.
+     */
+    private final RefreshTokenRepository tokenRepository;
+
+    /**
      * application.properties or application.yml에서 jwt.secret값을 찾아 secretKey 변수에 넣음
      * Jwt 서명을 위한 HMAC-SHA 키 생성.
      * -> Key를 가지고 메시지 해쉬값(MAC)을 생성해서 내가 원하는 사용자로부터 메시지가 왔는지 판단.
      *
      * @param secretKey Base64로 인코딩된 비밀 키
+     * @param tokenRepository Redis와 연동한 Refresh Token Repository.
      */
-    public JwtTokenValidator(@Value("${jwt.secret}")String secretKey) {
+    public JwtTokenValidator(@Value("${jwt.secret}")String secretKey,
+                             RefreshTokenRepository tokenRepository) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey); //디코딩
         this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.tokenRepository = tokenRepository;
     }
 
     /**
@@ -68,7 +84,7 @@ public class JwtTokenValidator {
             }
         } else if (refreshTokenCookie != null) {
             String refreshToken = refreshTokenCookie.getValue();
-            if (validateToken(refreshToken)) {
+            if (validateRefreshFromRedis(refreshToken) && validateToken(refreshToken)) {
                 throw new AccessTokenReissueRequiredException(
                         "Access token expired, but refresh token valid"
                 );
@@ -100,6 +116,18 @@ public class JwtTokenValidator {
         validateTokenPresence(token);
         Claims claims = parseValidClaims(token);
         return claims.get("role", String.class);
+    }
+
+    /**
+     * Redis에 존재하는 Refresh 토큰인지 검증합니다. 여기서 false 값이 나오면 이미 삭제한 Refresh 토큰입니다.
+     * @param refreshToken 검증할 refreshToken.
+     * @return true, false.
+     */
+    public boolean validateRefreshFromRedis(String refreshToken) {
+        validateTokenPresence(refreshToken);
+        String userId = getUserEmailFromToken(refreshToken);
+        String refreshTokenId = DigestUtils.sha256Hex(tokenPrefix + ":" + userId);
+        return tokenRepository.existsById(refreshTokenId);
     }
 
     /**

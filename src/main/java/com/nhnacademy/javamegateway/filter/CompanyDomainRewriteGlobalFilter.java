@@ -49,7 +49,8 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
 
         // OptionalInt 는 java 8에서 추가된 기본형 int 전용 Optional 클래스이다.
         // path 경로를 / 기준으로 나누고 idxOpt 에는 company-domain이 위치한 index 값을 가지게 된다.
-        String[] segments = path.split("/");
+        String[] segments = path.split("/"); //api/v1/envrionment/company-domain
+        //api, v1, envrionment, company-domain
         OptionalInt idxOpt = IntStream.range(0, segments.length)
                 .filter(i -> segments[i].equals("company-domain"))
                 .findFirst();
