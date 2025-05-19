@@ -5,6 +5,10 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
+              - "http://localhost:10271"
+              - "http://localhost:10273"
+              - "http://localhost:10279"
+              - "http://localhost:10280"
               - "https://s2.java21.net:10271"
               - "https://s2.java21.net:10272"
               - "https://s2.java21.net:10273"
