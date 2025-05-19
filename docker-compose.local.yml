@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  gateway:
+    container_name: javame-gateway-local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "10279:10279"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - local-net
+
+networks:
+  local-net:
+    external: true
