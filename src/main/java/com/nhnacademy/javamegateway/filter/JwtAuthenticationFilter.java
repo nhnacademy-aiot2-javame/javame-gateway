@@ -1,9 +1,11 @@
 package com.nhnacademy.javamegateway.filter;
 
+import com.netflix.discovery.converters.Auto;
 import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.TokenExpiredException;
 import com.nhnacademy.javamegateway.token.JwtTokenValidator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -18,18 +20,21 @@ import java.util.List;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     /**
      * 토큰 검증 및 파서역할자.
      */
-    private JwtTokenValidator jwtTokenValidator;
+    private final JwtTokenValidator jwtTokenValidator;
+
 
     /**
      * WHITE LIST 에 들어가는 url.
      */
     private static final List<String> WHITE_LIST = List.of(
-            "/api/v1/auth/register",
-            "/api/v1/auth/register-owner",
+            "/api/v1/members/register",
+            "/api/v1/members/register/owners",
+            "/api/v1/companies/register",
             "/api/v1/auth/login"
     );
 

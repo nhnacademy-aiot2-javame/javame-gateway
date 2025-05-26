@@ -22,6 +22,9 @@ spring:
               - DELETE
               - OPTIONS
             allowedHeaders: "*"
+            exposedHeaders:
+              - "Authorization"
+              - "Refresh-Token"
             allowCredentials: true
 
       routes:
