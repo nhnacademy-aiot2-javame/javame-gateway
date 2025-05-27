@@ -1,6 +1,5 @@
 package com.nhnacademy.javamegateway.filter;
 
-import com.netflix.discovery.converters.Auto;
 import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.TokenExpiredException;
@@ -58,7 +57,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         log.debug("Gateway JWT Filter: Validating JWT for {}", path);
 
         try {
-            String token = jwtTokenValidator.resolveTokenFromCookie(exchange);
+            String token = jwtTokenValidator.resolveTokenFromHeader(exchange);
 
             String role = jwtTokenValidator.getRoleIdFromToken(token);
             String userEmail = jwtTokenValidator.getUserEmailFromToken(token);

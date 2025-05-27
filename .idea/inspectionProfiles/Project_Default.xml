@@ -8,6 +8,7 @@
           <option value="X-Requth-Required" />
           <option value="X-Reauth-Required" />
           <option value="X-Token-Required" />
+          <option value="Refresh-Token" />
         </set>
       </option>
     </inspection_tool>

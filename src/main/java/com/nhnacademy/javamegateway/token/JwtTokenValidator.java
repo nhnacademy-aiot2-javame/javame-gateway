@@ -16,9 +16,9 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ServerWebExchange;
 
 import javax.crypto.SecretKey;
@@ -49,6 +49,12 @@ public class JwtTokenValidator {
      */
     private final RefreshTokenRepository tokenRepository;
 
+
+    /**
+     *  Bearer 문자열을 상수로 정의.
+     */
+    private static final String BEARER_PREFIX = "Bearer ";
+
     /**
      * application.properties or application.yml에서 jwt.secret값을 찾아 secretKey 변수에 넣음
      * Jwt 서명을 위한 HMAC-SHA 키 생성.
@@ -70,28 +76,29 @@ public class JwtTokenValidator {
      * @param exchange Gateway 에서 사용하는 WebFlux 전용 객체.
      * @return Cookie 에서 추출한 토큰.
      */
-    public String resolveTokenFromCookie(ServerWebExchange exchange) {
-        MultiValueMap<String, HttpCookie> cookies = exchange.getRequest().getCookies();
+    public String resolveTokenFromHeader(ServerWebExchange exchange) {
+        ServerHttpRequest request = exchange.getRequest();
+        HttpHeaders headers = request.getHeaders();
 
-        HttpCookie accessTokenCookie = cookies.getFirst("accessToken");
-        HttpCookie refreshTokenCookie = cookies.getFirst("refreshToken");
+        String authorizationHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        String refreshTokenHeader = headers.getFirst("Refresh-Token");
 
-        if (accessTokenCookie != null) {
-            String accessToken = accessTokenCookie.getValue();
+        if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
+            String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
             if (validateToken(accessToken)) {
                 return accessToken;
             } else {
-              // 만료 시 만료되었다고 에러 응답 보냄.
+                // accessToken 만료됨
                 throw new TokenExpiredException("AccessToken expired");
             }
-        } else if (refreshTokenCookie != null) {
-            String refreshToken = refreshTokenCookie.getValue();
-            if (validateRefreshFromRedis(refreshToken) && validateToken(refreshToken)) {
+        }
+        // 2. RefreshToken 처리
+        if (refreshTokenHeader != null) {
+            if (validateRefreshFromRedis(refreshTokenHeader) && validateToken(refreshTokenHeader)) {
                 throw new AccessTokenReissueRequiredException(
                         "Access token expired, but refresh token valid"
                 );
             } else {
-                // refreshToken도 만료되었다면 로그인이 필요하다고 응답을 보냄.
                 throw new TokenExpiredException("Refresh token expired");
             }
         }
@@ -171,7 +178,6 @@ public class JwtTokenValidator {
     private Claims parseValidClaims(String token) {
         try {
             return Jwts.parser()
-                    //Key가 HMAC 알고리즘을 사용하면 비밀키로 서명하고, 검증할 때도 같은 키를 써야되기 때문에 비밀키로 검증해야함.
                     .verifyWith((SecretKey) key)
                     .build()
                     .parseSignedClaims(token)

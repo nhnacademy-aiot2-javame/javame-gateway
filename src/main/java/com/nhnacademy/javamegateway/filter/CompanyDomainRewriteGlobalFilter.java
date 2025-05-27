@@ -2,7 +2,7 @@ package com.nhnacademy.javamegateway.filter;
 
 import com.nhnacademy.javamegateway.dto.MemberResponse;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
-import com.nhnacademy.javamegateway.exception.TokenNotFoundFromCookie;
+import com.nhnacademy.javamegateway.exception.TokenNotFoundFromHeader;
 import com.nhnacademy.javamegateway.token.JwtTokenValidator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -61,8 +61,8 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
 
         String token;
         try {
-            token = jwtTokenValidator.resolveTokenFromCookie(exchange);
-        } catch (TokenNotFoundFromCookie e) {
+            token = jwtTokenValidator.resolveTokenFromHeader(exchange);
+        } catch (TokenNotFoundFromHeader e) {
             return chain.filter(exchange);
         }
 
