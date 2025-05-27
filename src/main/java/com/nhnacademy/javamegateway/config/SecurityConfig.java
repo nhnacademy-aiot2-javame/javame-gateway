@@ -20,7 +20,7 @@
 //        http
 //                .csrf(csrf -> csrf.disable())
 //                .authorizeExchange(exchanges -> exchanges
-//                        .pathMatchers("/**").permitAll()
+//                        .pathMatchers("/api/auth/**").permitAll()
 //                        .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
 //                        .anyExchange().permitAll()
 //                );
@@ -31,7 +31,7 @@
 //    @Bean
 //    public CorsWebFilter corsWebFilter() {
 //        CorsConfiguration config = new CorsConfiguration();
-//        config.setAllowCredentials(true);
+//        config.setAllowCredentials(true); //HttpOnlyCookie allowed
 //        config.setAllowedOrigins(List.of(
 //                "http://localhost:10271",
 //                "http://localhost:10272",
