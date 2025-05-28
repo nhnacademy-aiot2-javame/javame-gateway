@@ -1,9 +1,11 @@
 package com.nhnacademy.javamegateway.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.javamegateway.dto.MemberResponse;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
 import com.nhnacademy.javamegateway.exception.TokenNotFoundFromHeader;
 import com.nhnacademy.javamegateway.token.JwtTokenValidator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Component
+@Slf4j
 public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
 
     /**
@@ -33,8 +36,9 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
     private JwtTokenValidator jwtTokenValidator;
 
     public CompanyDomainRewriteGlobalFilter(@Qualifier("loadBalancedWebClient")WebClient.Builder
-                                                    webClientBuilder) {
+                                                    webClientBuilder, JwtTokenValidator jwtTokenValidator) {
         this.webClient = webClientBuilder.baseUrl("http://MEMBER-API").build();
+        this.jwtTokenValidator = jwtTokenValidator;
     }
 
 
@@ -43,21 +47,23 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getURI().getPath();
 
         //Path 경로에 company-domain이 없다면 넘긴다.
-        if (!path.contains("company-domain")) {
+        if (!path.contains("companyDomain")) {
             return chain.filter(exchange);
         }
 
         // OptionalInt 는 java 8에서 추가된 기본형 int 전용 Optional 클래스이다.
         // path 경로를 / 기준으로 나누고 idxOpt 에는 company-domain이 위치한 index 값을 가지게 된다.
         String[] segments = path.split("/"); //api/v1/envrionment/company-domain
+        String[] newSegments = Arrays.copyOfRange(segments, 3, segments.length);
+
         //api, v1, envrionment, company-domain
-        OptionalInt idxOpt = IntStream.range(0, segments.length)
-                .filter(i -> segments[i].equals("company-domain"))
+        OptionalInt idxOpt = IntStream.range(0, newSegments.length)
+                .filter(i -> newSegments[i].equals("companyDomain"))
                 .findFirst();
 
         if (idxOpt.isEmpty()) return chain.filter(exchange);
 
-        int index  = idxOpt.getAsInt();
+        int index = idxOpt.getAsInt();
 
         String token;
         try {
@@ -74,30 +80,48 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
         }
 
         // 이메일로 회사 도메인 조회
-        return webClient.post()
-                .uri("/member-email")
-                .bodyValue(email)
-                .retrieve() //요청을 전송하고 서버의 응답 받을 준비.
-                .bodyToMono(MemberResponse.class) //응답 JSON을 역직렬화.
-                .map(MemberResponse::getCompanyDomain)
-                .flatMap(realDomain -> {
-                    // 경로에 회사 도메인 치환
-                    segments[index] = realDomain;
+        return webClient.get()
+                .uri("/members/me")
+                .header("X-User-Email", email)
+                .retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                                .flatMap(errorBody -> {
+                                    log.error("응답 에러 발생. 상태코드: {}, 바디: {}", clientResponse.statusCode(), errorBody);
+                                    return Mono.error(new RuntimeException("요청 실패"));
+                                }))
+                .bodyToMono(String.class) // JSON 문자열 그대로 받기
+                .doOnNext(rawJson -> log.debug("받은 MemberResponse 원본 JSON: {}", rawJson))
+                .flatMap(rawJson -> {
+                    try {
+                        MemberResponse member = new ObjectMapper().readValue(rawJson, MemberResponse.class); // 또는 DI된 objectMapper 사용
+                        String realDomain = member.getCompanyDomain();
+                        log.debug("real Domain: {} " , realDomain);
+                        // 경로 치환
+                        newSegments[index] = realDomain.replaceFirst("\\..*$", ""); // .com 제거
 
-                    String newPath = Arrays.stream(segments)
-                            .filter(s -> !s.isBlank())
-                            .collect(Collectors.joining("/", "/", "/"));
+                        String newPath = Arrays.stream(newSegments)
+                                .filter(s -> !s.isBlank())
+                                .collect(Collectors.joining("/", "/", ""));
+                        log.debug("new Path {}",newPath);
 
-                    ServerHttpRequest newRequest = exchange.getRequest()
-                            .mutate()
-                            .path(newPath)
-                            .build();
+                        ServerHttpRequest newRequest = exchange.getRequest()
+                                .mutate()
+                                .path(newPath)
+                                .build();
 
-                    ServerWebExchange newExchange = exchange.mutate()
-                            .request(newRequest)
-                            .build();
+                        log.debug("new Req {}",newRequest);
 
-                    return chain.filter(newExchange);
+                        ServerWebExchange newExchange = exchange.mutate()
+                                .request(newRequest)
+                                .build();
+
+                        log.debug("environment 로 보낼 새 경로: {}", newExchange);
+                        return chain.filter(newExchange);
+                    } catch (Exception e) {
+                            log.error("MemberResponse 파싱 실패", e);
+                        return chain.filter(exchange); // 실패해도 기존 요청 계속 진행
+                    }
                 });
     }
 

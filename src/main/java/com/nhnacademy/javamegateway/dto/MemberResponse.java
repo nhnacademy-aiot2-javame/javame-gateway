@@ -1,8 +1,11 @@
 package com.nhnacademy.javamegateway.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 /**
  * 회원 정보 조회 응답 시 반환될 데이터를 담는 DTO 클래스입니다.
@@ -11,6 +14,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MemberResponse {
 
     /**
@@ -32,4 +36,5 @@ public class MemberResponse {
      * 역할 ID (예: "ROLE_USER").
      */
     private String roleId;
+
 }
