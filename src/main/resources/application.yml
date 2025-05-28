@@ -7,6 +7,8 @@ spring:
             allowedOrigins:
               - "http://localhost:10271"
               - "http://localhost:10273"
+              - "http://localhost:10275"
+              - "http://localhost:10276"
               - "http://localhost:10279"
               - "http://localhost:10280"
               - "https://s2.java21.net:10271"
@@ -58,6 +60,9 @@ spring:
               - DELETE
               - OPTIONS
             allowedHeaders: "*"
+            exposedHeaders:
+              - "Authorization"
+              - "Refresh-Token"
             allowCredentials: true
 
       routes:
