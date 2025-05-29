@@ -103,13 +103,18 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
                         // 경로 치환
                         newSegments[index] = realDomain; // .com 제거
 
+
                         String newPath = Arrays.stream(newSegments)
                                 .filter(s -> !s.isBlank())
                                 .collect(Collectors.joining("/", "/", ""));
                         if(Objects.nonNull(query)){
-                             newPath = newPath + "?" + query;
+                            newPath = exchange.getRequest().getURI().getScheme() + "://" +
+                                    exchange.getRequest().getURI().getHost() +
+                                    ":" + exchange.getRequest().getURI().getPort() +
+                                    newPath + (query != null ? "?" + query : "");
+                            log.debug("new Path {}",newPath);
                         }
-                        log.debug("new Path {}",newPath);
+
 
 //                        String query = exchange.getRequest().getURI().getQuery(); // 쿼리스트링 보존
 //                        String fullPath = newPath + (query != null ? "?" + query : ""); // 전체 경로 구성
