@@ -79,6 +79,7 @@ public class JwtTokenValidator {
     public String resolveTokenFromHeader(ServerWebExchange exchange) {
         ServerHttpRequest request = exchange.getRequest();
         HttpHeaders headers = request.getHeaders();
+        System.out.println("header : " + headers);
 
         String authorizationHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
         String refreshTokenHeader = headers.getFirst("Refresh-Token");
