@@ -3,6 +3,7 @@ package com.nhnacademy.javamegateway.token;
 import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
+import com.nhnacademy.javamegateway.exception.ServerWebExchangeIsNull;
 import com.nhnacademy.javamegateway.exception.TokenExpiredException;
 import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ServerWebExchange;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
+import java.util.Objects;
 
 /**
  * Jwt 토큰 생성을 위한 Provider 클래스.
@@ -77,6 +79,9 @@ public class JwtTokenValidator {
      * @return Cookie 에서 추출한 토큰.
      */
     public String resolveTokenFromHeader(ServerWebExchange exchange) {
+        if (Objects.isNull(exchange)) {
+            throw new ServerWebExchangeIsNull("들어온 요청 값이 없습니다.");
+        }
         ServerHttpRequest request = exchange.getRequest();
         HttpHeaders headers = request.getHeaders();
         System.out.println("header : " + headers);
