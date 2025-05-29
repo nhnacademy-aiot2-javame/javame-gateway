@@ -16,7 +16,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -45,6 +47,7 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
+        String query = exchange.getRequest().getURI().getQuery();
 
         //Path 경로에 company-domain이 없다면 넘긴다.
         if (!path.contains("companyDomain")) {
@@ -98,12 +101,24 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
                         String realDomain = member.getCompanyDomain();
                         log.debug("real Domain: {} " , realDomain);
                         // 경로 치환
-                        newSegments[index] = realDomain.replaceFirst("\\..*$", ""); // .com 제거
+                        newSegments[index] = realDomain; // .com 제거
 
                         String newPath = Arrays.stream(newSegments)
                                 .filter(s -> !s.isBlank())
                                 .collect(Collectors.joining("/", "/", ""));
+                        if(Objects.nonNull(query)){
+                             newPath = newPath + "?" + query;
+                        }
                         log.debug("new Path {}",newPath);
+
+//                        String query = exchange.getRequest().getURI().getQuery(); // 쿼리스트링 보존
+//                        String fullPath = newPath + (query != null ? "?" + query : ""); // 전체 경로 구성
+//                        log.debug("fullPath: {}", fullPath);
+//
+//                        ServerHttpRequest newRequest = exchange.getRequest()
+//                                .mutate()
+//                                .uri(URI.create(fullPath)) // 여기!
+//                                .build();
 
                         ServerHttpRequest newRequest = exchange.getRequest()
                                 .mutate()
