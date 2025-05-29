@@ -6,11 +6,16 @@ spring:
           '[/**]':
             allowedOrigins:
               - "http://localhost:10271"
+              - "http://localhost:10272"
               - "http://localhost:10273"
+              - "http://localhost:10274"
               - "http://localhost:10275"
               - "http://localhost:10276"
+              - "http://localhost:10278"
               - "http://localhost:10279"
               - "http://localhost:10280"
+              - "http://localhost:10281"
+              - "http://localhost:10282"
               - "https://s2.java21.net:10271"
               - "https://s2.java21.net:10272"
               - "https://s2.java21.net:10273"
@@ -99,11 +104,19 @@ spring:
           predicates:
             - Path=/api/v1/rule/**
           filters:
-            - RewritePath=/api/v1/rule/(?<segment>.*), /rule/$1
+            - RewritePath=/api/v1/rule/(?<segment>.*), /rule/${segment}
 
         - id: ai-api
           uri: lb://AI-API
           predicates:
             - Path=/api/v1/ai/**
           filters:
-            - RewritePath=/api/v1/ai/(?<segment>.*), /ai/$1
+            - RewritePath=/api/v1/ai/(?<segment>.*), /ai/${segment}
+
+
+        - id: warnify-service
+          uri: lb://WARNIFY-SERVICE
+          predicates:
+            - Path=/api/v1/warnify/**
+          filters:
+            - RewritePath=/api/v1/warnify/(?<segment>.*), /warnify/${segment}

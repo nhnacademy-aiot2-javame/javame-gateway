@@ -77,9 +77,21 @@ public class JwtTokenValidator {
      * @return Cookie 에서 추출한 토큰.
      */
     public String resolveTokenFromHeader(ServerWebExchange exchange) {
-        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
+        ServerHttpRequest request = exchange.getRequest();
+        HttpHeaders headers = request.getHeaders();
+        System.out.println("header : " + headers);
+
+        String authorizationHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        String refreshTokenHeader = headers.getFirst("Refresh-Token");
+
+        if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
+            String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
+            if (validateToken(accessToken)) {
+                return accessToken;
+            } else {
+                // accessToken 만료됨
+                throw new TokenExpiredException("AccessToken expired");
+            }
         }
         if (exchange.getRequest().getCookies().containsKey("accessToken")) {
             return exchange.getRequest().getCookies().getFirst("accessToken").getValue();
