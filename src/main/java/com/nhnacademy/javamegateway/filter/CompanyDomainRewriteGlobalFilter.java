@@ -81,68 +81,99 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
         } catch (MissingTokenException e) {
             return chain.filter(exchange);
         }
-
-        // 이메일로 회사 도메인 조회
-        return webClient.get()
-                .uri("/members/me")
-                .header("X-User-Email", email)
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                        clientResponse -> clientResponse.bodyToMono(String.class)
-                                .flatMap(errorBody -> {
-                                    log.error("응답 에러 발생. 상태코드: {}, 바디: {}", clientResponse.statusCode(), errorBody);
-                                    return Mono.error(new RuntimeException("요청 실패"));
-                                }))
-                .bodyToMono(String.class) // JSON 문자열 그대로 받기
-                .doOnNext(rawJson -> log.debug("받은 MemberResponse 원본 JSON: {}", rawJson))
-                .flatMap(rawJson -> {
-                    try {
-                        MemberResponse member = new ObjectMapper().readValue(rawJson, MemberResponse.class); // 또는 DI된 objectMapper 사용
-                        String realDomain = member.getCompanyDomain();
-                        log.debug("real Domain: {} " , realDomain);
-                        // 경로 치환
-                        newSegments[index] = realDomain; // .com 제거
-
-
-                        String newPath = Arrays.stream(newSegments)
-                                .filter(s -> !s.isBlank())
-                                .collect(Collectors.joining("/", "/", ""));
-                        if(Objects.nonNull(query)){
-                            newPath = exchange.getRequest().getURI().getScheme() + "://" +
-                                    exchange.getRequest().getURI().getHost() +
-                                    ":" + exchange.getRequest().getURI().getPort() +
-                                    newPath + (query != null ? "?" + query : "");
-                            log.debug("new Path {}",newPath);
-                        }
+        if(Objects.nonNull(query)) {
+            return webClient.get()
+                    .uri("/members/me")
+                    .header("X-User-Email", email)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            clientResponse -> clientResponse.bodyToMono(String.class)
+                                    .flatMap(errorBody -> {
+                                        log.error("응답 에러 발생. 상태코드: {}, 바디: {}", clientResponse.statusCode(), errorBody);
+                                        return Mono.error(new RuntimeException("요청 실패"));
+                                    }))
+                    .bodyToMono(String.class) // JSON 문자열 그대로 받기
+                    .doOnNext(rawJson -> log.debug("받은 MemberResponse 원본 JSON: {}", rawJson))
+                    .flatMap(rawJson -> {
+                        try {
+                            MemberResponse member = new ObjectMapper().readValue(rawJson, MemberResponse.class); // 또는 DI된 objectMapper 사용
+                            String realDomain = member.getCompanyDomain();
+                            log.debug("real Domain: {} " , realDomain);
+                            // 경로 치환
+                            newSegments[index] = realDomain; // .com 제거
 
 
-//                        String query = exchange.getRequest().getURI().getQuery(); // 쿼리스트링 보존
-//                        String fullPath = newPath + (query != null ? "?" + query : ""); // 전체 경로 구성
-//                        log.debug("fullPath: {}", fullPath);
-//
-//                        ServerHttpRequest newRequest = exchange.getRequest()
-//                                .mutate()
-//                                .uri(URI.create(fullPath)) // 여기!
-//                                .build();
+                            String newPath = Arrays.stream(newSegments)
+                                    .filter(s -> !s.isBlank())
+                                    .collect(Collectors.joining("/", "/", ""));
 
-                        ServerHttpRequest newRequest = exchange.getRequest()
-                                .mutate()
-                                .path(newPath)
-                                .build();
+                            String newStringPath = exchange.getRequest().getURI().getScheme() + "://" +
+                                        exchange.getRequest().getURI().getHost() +
+                                        ":" + exchange.getRequest().getURI().getPort() +
+                                        newPath + (query != null ? "?" + query : "");
+                            log.debug("new Path {}",newStringPath);
 
-                        log.debug("new Req {}",newRequest);
+                            ServerHttpRequest newRequest = exchange.getRequest()
+                                    .mutate()
+                                    .path(newStringPath)
+                                    .build();
 
-                        ServerWebExchange newExchange = exchange.mutate()
-                                .request(newRequest)
-                                .build();
+                            log.debug("new Req {}",newRequest);
 
-                        log.debug("environment 로 보낼 새 경로: {}", newExchange);
-                        return chain.filter(newExchange);
-                    } catch (Exception e) {
+                            ServerWebExchange newExchange = exchange.mutate()
+                                    .request(newRequest)
+                                    .build();
+
+                            log.debug("environment 로 보낼 새 경로: {}", newExchange);
+                            return chain.filter(newExchange);
+                        } catch (Exception e) {
                             log.error("MemberResponse 파싱 실패", e);
-                        return chain.filter(exchange); // 실패해도 기존 요청 계속 진행
-                    }
-                });
+                            return chain.filter(exchange); // 실패해도 기존 요청 계속 진행
+                        }
+                    });
+        } else {
+            return webClient.get()
+                    .uri("/members/me")
+                    .header("X-User-Email", email)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            clientResponse -> clientResponse.bodyToMono(String.class)
+                                    .flatMap(errorBody -> {
+                                        log.error("응답 에러 발생. 상태코드: {}, 바디: {}", clientResponse.statusCode(), errorBody);
+                                        return Mono.error(new RuntimeException("요청 실패"));
+                                    }))
+                    .bodyToMono(String.class) // JSON 문자열 그대로 받기
+                    .doOnNext(rawJson -> log.debug("받은 MemberResponse 원본 JSON: {}", rawJson))
+                    .flatMap(rawJson -> {
+                        try {
+                            MemberResponse member = new ObjectMapper().readValue(rawJson, MemberResponse.class); // 또는 DI된 objectMapper 사용
+                            String realDomain = member.getCompanyDomain();
+                            log.debug("real Domain: {} " , realDomain);
+                            // 경로 치환
+                            newSegments[index] = realDomain;
+
+                            String newPath = Arrays.stream(newSegments)
+                                    .filter(s -> !s.isBlank())
+                                    .collect(Collectors.joining("/", "/", ""));
+                            ServerHttpRequest newRequest = exchange.getRequest()
+                                    .mutate()
+                                    .path(newPath)
+                                    .build();
+
+                            log.debug("new Req {}",newRequest);
+
+                            ServerWebExchange newExchange = exchange.mutate()
+                                    .request(newRequest)
+                                    .build();
+
+                            log.debug("environment 로 보낼 새 경로: {}", newExchange);
+                            return chain.filter(newExchange);
+                        } catch (Exception e) {
+                            log.error("MemberResponse 파싱 실패", e);
+                            return chain.filter(exchange); // 실패해도 기존 요청 계속 진행
+                        }
+                    });
+        }
     }
 
     @Override

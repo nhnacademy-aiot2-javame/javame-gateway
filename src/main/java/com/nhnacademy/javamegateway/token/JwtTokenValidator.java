@@ -77,33 +77,16 @@ public class JwtTokenValidator {
      * @return Cookie 에서 추출한 토큰.
      */
     public String resolveTokenFromHeader(ServerWebExchange exchange) {
-        ServerHttpRequest request = exchange.getRequest();
-        HttpHeaders headers = request.getHeaders();
-
-        String authorizationHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
-        String refreshTokenHeader = headers.getFirst("Refresh-Token");
-
-        if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
-            String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
-            if (validateToken(accessToken)) {
-                return accessToken;
-            } else {
-                // accessToken 만료됨
-                throw new TokenExpiredException("AccessToken expired");
-            }
+        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
         }
-        // 2. RefreshToken 처리
-        if (refreshTokenHeader != null) {
-            if (validateRefreshFromRedis(refreshTokenHeader) && validateToken(refreshTokenHeader)) {
-                throw new AccessTokenReissueRequiredException(
-                        "Access token expired, but refresh token valid"
-                );
-            } else {
-                throw new TokenExpiredException("Refresh token expired");
-            }
+        if (exchange.getRequest().getCookies().containsKey("accessToken")) {
+            return exchange.getRequest().getCookies().getFirst("accessToken").getValue();
         }
-        throw new AuthenticationCredentialsNotFoundException("No token found in cookies");
+        throw new AuthenticationCredentialsNotFoundException("No token found in header or cookies");
     }
+
 
     /**
      *

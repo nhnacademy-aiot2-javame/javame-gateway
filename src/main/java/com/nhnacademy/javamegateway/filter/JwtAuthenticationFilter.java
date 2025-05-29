@@ -83,7 +83,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             exchange.getResponse().getHeaders().add("X-Reauth-Required", "true");
             return exchange.getResponse().setComplete();
         } catch (AuthenticationCredentialsNotFoundException ex) {
-            log.debug("No token found in cookies");
+            log.debug("No token found in headers");
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             exchange.getResponse().getHeaders().add("X-Token-Required", "true");
             return exchange.getResponse().setComplete();
