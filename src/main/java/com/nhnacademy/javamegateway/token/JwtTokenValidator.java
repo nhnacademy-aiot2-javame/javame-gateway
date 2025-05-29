@@ -93,18 +93,12 @@ public class JwtTokenValidator {
                 throw new TokenExpiredException("AccessToken expired");
             }
         }
-        // 2. RefreshToken 처리
-        if (refreshTokenHeader != null) {
-            if (validateRefreshFromRedis(refreshTokenHeader) && validateToken(refreshTokenHeader)) {
-                throw new AccessTokenReissueRequiredException(
-                        "Access token expired, but refresh token valid"
-                );
-            } else {
-                throw new TokenExpiredException("Refresh token expired");
-            }
+        if (exchange.getRequest().getCookies().containsKey("accessToken")) {
+            return exchange.getRequest().getCookies().getFirst("accessToken").getValue();
         }
-        throw new AuthenticationCredentialsNotFoundException("No token found in cookies");
+        throw new AuthenticationCredentialsNotFoundException("No token found in header or cookies");
     }
+
 
     /**
      *
