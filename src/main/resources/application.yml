@@ -57,6 +57,9 @@ spring:
               - "http://s2.java21.net:10289"
               - "http://s2.java21.net:10290"
               - "http://javame.live"
+              - "https://gateway.javame.live"
+              - "http://gateway.javame.live"
+              - "gateway.javame.live"
               - "http://s2.java21.net:10285"
             allowedMethods:
               - GET
