@@ -46,6 +46,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String path = request.getURI().getPath();
         log.debug("Gateway JWT Filter: Path = {}", path);
 
+        if (path.startsWith("/ws/environment")) {
+            log.debug("Gateway JWT Filter: WebSocket path detected, applying WebSocket auth logic");
+            return handleWebSocketAuthentication(exchange, chain);
+        }
+
         // --- 1. WHITE_LIST 경로인지 먼저 확인! ---
         boolean isWhiteListed = WHITE_LIST.stream().anyMatch(path::startsWith);
         log.debug("Gateway JWT Filter: isWhiteListed = {}", isWhiteListed);
@@ -88,6 +93,47 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             exchange.getResponse().getHeaders().add("X-Token-Required", "true");
             return exchange.getResponse().setComplete();
         }
+    }
+
+    private Mono<Void> handleWebSocketAuthentication(ServerWebExchange exchange, GatewayFilterChain chain) {
+        try{
+            String token = extractTokenFromQuery(exchange);
+            if (token != null && jwtTokenValidator.validateToken(token)) {
+                String role = jwtTokenValidator.getRoleIdFromToken(token);
+                String userEmail = jwtTokenValidator.getUserEmailFromToken(token);
+
+                ServerHttpRequest mutateRequest = exchange.getRequest().mutate()
+                        .header("X-User-Role", role)
+                        .header("X-User-Email", userEmail)
+                        .header("X-WebSocket-Auth", "validated")
+                        .build();
+
+                log.debug("WebSocket authentication successful for user: {}", userEmail);
+
+                return chain.filter(exchange.mutate().request(mutateRequest).build());
+            } else {
+                log.warn("WebSocket authentication failed - invalid or missing token");
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+        } catch (Exception ex) {
+            log.error("WebSocket authentication error", ex);
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+    }
+
+    private String extractTokenFromQuery(ServerWebExchange exchange) {
+        String query = exchange.getRequest().getURI().getQuery();
+        if (query != null && query.contains("token=")) {
+            String[] params = query.split("&");
+            for (String param : params) {
+                if (param.startsWith("token=")) {
+                    return param.substring(6);
+                }
+            }
+        }
+        return null;
     }
 
     @Override
