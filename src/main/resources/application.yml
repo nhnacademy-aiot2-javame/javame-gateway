@@ -59,7 +59,6 @@ spring:
               - "http://javame.live"
               - "https://gateway.javame.live"
               - "http://gateway.javame.live"
-              - "gateway.javame.live"
               - "http://s2.java21.net:10285"
             allowedMethods:
               - GET
@@ -67,6 +66,7 @@ spring:
               - PUT
               - DELETE
               - OPTIONS
+              - PATCH
             allowedHeaders: "*"
             exposedHeaders:
               - "Authorization"
