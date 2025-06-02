@@ -59,8 +59,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         if (isWhiteListed) {
             log.debug("Gateway JWT Filter: Bypassing JWT validation for {}", path);
             // WHITE_LIST에 포함된 경로면 토큰 검증 없이 바로 다음 필터로 진행
+            log.info("통과");
             return chain.filter(exchange);
         }
+
+        log.info("불통과");
 
         // --- 2. WHITE_LIST 외의 경로만 토큰 검증 수행 ---
         log.debug("Gateway JWT Filter: Validating JWT for {}", path);
