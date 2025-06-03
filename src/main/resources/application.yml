@@ -79,11 +79,15 @@ spring:
           uri: wss://localhost:10273  # ENVIRONMENT-API WebSocket
           predicates:
             - Path=/ws/environment/**
+          filters:
+            - RewritePath=/api/v1/ws/(?<segment>.*), /ws/${segment}
 
         - id: environment-websocket-lb
           uri: lb:wss://ENVIRONMENT-API
           predicates:
             - Path=/ws/environment/**
+          filters:
+            - RewritePath=/api/v1/ws/(?<segment>.*), /ws/${segment}
 
         - id: auth-api
           uri: lb://AUTH-API
