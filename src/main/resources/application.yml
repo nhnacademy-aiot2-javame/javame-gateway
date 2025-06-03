@@ -87,7 +87,7 @@ spring:
           predicates:
             - Path=/api/v1/ws/environment/**
           filters:
-            - RewritePath=/api/v1/ws/environment/(?<segment>.*), /ws/environment/${segment}
+            - RewritePath=/api/v1/ws/environment(?<segment>.*), /ws/environment${segment}
 
         - id: auth-api
           uri: lb://AUTH-API
