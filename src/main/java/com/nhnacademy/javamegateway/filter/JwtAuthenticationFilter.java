@@ -50,10 +50,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         if (request.getMethod() == HttpMethod.OPTIONS) {
             return chain.filter(exchange);
         }
-        log.debug("Gateway JWT Filter: Path = {}", path);
+        log.info("Gateway JWT Filter: Path = {}", path);
 
-        if (path.startsWith("/ws/environment")) {
-            log.debug("Gateway JWT Filter: WebSocket path detected, applying WebSocket auth logic");
+        if (exchange.getRequest().getURI().getPath().startsWith("/api/v1/ws/environment")) {
+            log.debug("WebSocket path detected, applying WebSocket auth logic");
             return handleWebSocketAuthentication(exchange, chain);
         }
 
