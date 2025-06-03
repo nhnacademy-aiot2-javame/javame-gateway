@@ -71,6 +71,17 @@ spring:
             allowCredentials: true
 
       routes:
+        # 웹 소켓 용 environment api router
+        - id: environment-websocket
+          uri: wss://localhost:10273  # ENVIRONMENT-API WebSocket
+          predicates:
+            - Path=/ws/environment/**
+
+        - id: environment-websocket-lb
+          uri: lb:wss://ENVIRONMENT-API
+          predicates:
+            - Path=/ws/environment/**
+
         - id: auth-api
           uri: lb://AUTH-API
           predicates:
