@@ -75,12 +75,12 @@ spring:
 
       routes:
         # 웹 소켓 용 environment api router
-        - id: environment-websocket
-          uri: lb://localhost:10273  # ENVIRONMENT-API WebSocket
-          predicates:
-            - Path=/api/v1/ws/environment/**
-          filters:
-            - RewritePath=/api/v1/ws/environment/(?<segment>.*), /ws/environment/${segment}
+#        - id: environment-websocket
+#          uri: lb://localhost:10273  # ENVIRONMENT-API WebSocket
+#          predicates:
+#            - Path=/api/v1/ws/environment/**
+#          filters:
+#            - RewritePath=/api/v1/ws/environment/(?<segment>.*), /ws/environment/${segment}
 
         - id: environment-websocket-lb
           uri: lb://ENVIRONMENT-API
