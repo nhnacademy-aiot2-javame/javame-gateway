@@ -99,30 +99,29 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
                                     log.error("응답 에러 발생. 상태코드: {}, 바디: {}", clientResponse.statusCode(), errorBody);
                                     return Mono.error(new RuntimeException("요청 실패"));
                                 }))
-                .bodyToMono(String.class) // JSON 문자열 그대로 받기
+                .bodyToMono(String.class)
                 .doOnNext(rawJson -> log.debug("받은 MemberResponse 원본 JSON: {}", rawJson))
                 .flatMap(rawJson -> {
                     try {
-                        MemberResponse member = new ObjectMapper().readValue(rawJson, MemberResponse.class); // 또는 DI된 objectMapper 사용
+                        MemberResponse member = new ObjectMapper().readValue(rawJson, MemberResponse.class);
                         String realDomain = member.getCompanyDomain();
-                        log.debug("real Domain: {} " , realDomain);
-                        // 경로 치환
-                        newSegments[index] = realDomain; // .com 제거
+                        log.debug("real Domain: {}", realDomain);
+                        newSegments[index] = realDomain;
 
+                        // path 재조립 (절대 query 안붙임)
                         String newPath = Arrays.stream(newSegments)
                                 .filter(s -> !s.isBlank())
                                 .collect(Collectors.joining("/", "/", ""));
-                        if(Objects.nonNull(query)){
-                             newPath = newPath + "?" + query;
-                        }
-                        log.debug("new Path {}",newPath);
 
+                        log.debug("new Path(only): {}", newPath);
+
+                        // 쿼리는 mutate().path(newPath)에서 자동 전파됨.
                         ServerHttpRequest newRequest = exchange.getRequest()
                                 .mutate()
                                 .path(newPath)
                                 .build();
 
-                        log.debug("new Req {}",newRequest);
+                        log.debug("new Req {}", newRequest);
 
                         ServerWebExchange newExchange = exchange.mutate()
                                 .request(newRequest)
@@ -131,8 +130,8 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
                         log.debug("environment 로 보낼 새 경로: {}", newExchange);
                         return chain.filter(newExchange);
                     } catch (Exception e) {
-                            log.error("MemberResponse 파싱 실패", e);
-                        return chain.filter(exchange); // 실패해도 기존 요청 계속 진행
+                        log.error("MemberResponse 파싱 실패", e);
+                        return chain.filter(exchange);
                     }
                 });
     }
