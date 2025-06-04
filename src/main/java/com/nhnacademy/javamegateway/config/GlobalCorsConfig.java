@@ -1,3 +1,4 @@
+
 package com.nhnacademy.javamegateway.config;
 
 import org.springframework.context.annotation.Bean;

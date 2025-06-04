@@ -4,9 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-
 /**
  * 회원 정보 조회 응답 시 반환될 데이터를 담는 DTO 클래스입니다.
  * 비밀번호 등 민감 정보는 포함하지 않습니다.
