@@ -139,3 +139,10 @@ spring:
             - Path=/api/v1/warnify/**
           filters:
             - RewritePath=/api/v1/warnify/(?<segment>.*), /warnify/${segment}
+
+        - id: flask-api
+          uri: http://flask-api:10283   # Flask 도커 이름으로 접근 (Docker Compose 기반)
+          predicates:
+            - Path=/api/forecast/**
+          filters:
+            - RewritePath=/api/forecast(?<segment>.*), /api/forecast${segment}
