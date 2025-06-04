@@ -60,6 +60,7 @@ spring:
               - "https://gateway.javame.live"
               - "http://gateway.javame.live"
               - "http://s2.java21.net:10285"
+              - "http://127.0.0.1:10271"
             allowedMethods:
               - GET
               - POST
