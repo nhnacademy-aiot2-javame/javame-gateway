@@ -6,9 +6,16 @@ spring:
           '[/**]':
             allowedOrigins:
               - "http://localhost:10271"
+              - "http://localhost:10272"
               - "http://localhost:10273"
+              - "http://localhost:10274"
+              - "http://localhost:10275"
+              - "http://localhost:10276"
+              - "http://localhost:10278"
               - "http://localhost:10279"
               - "http://localhost:10280"
+              - "http://localhost:10281"
+              - "http://localhost:10282"
               - "https://s2.java21.net:10271"
               - "https://s2.java21.net:10272"
               - "https://s2.java21.net:10273"
@@ -50,6 +57,8 @@ spring:
               - "http://s2.java21.net:10289"
               - "http://s2.java21.net:10290"
               - "http://javame.live"
+              - "https://gateway.javame.live"
+              - "http://gateway.javame.live"
               - "http://s2.java21.net:10285"
             allowedMethods:
               - GET
@@ -57,10 +66,29 @@ spring:
               - PUT
               - DELETE
               - OPTIONS
+              - PATCH
             allowedHeaders: "*"
+            exposedHeaders:
+              - "Authorization"
+              - "Refresh-Token"
             allowCredentials: true
 
       routes:
+        # 웹 소켓 용 environment api router
+#        - id: environment-websocket
+#          uri: lb://localhost:10273  # ENVIRONMENT-API WebSocket
+#          predicates:
+#            - Path=/api/v1/ws/environment/**
+#          filters:
+#            - RewritePath=/api/v1/ws/environment/(?<segment>.*), /ws/environment/${segment}
+
+        - id: environment-websocket-lb
+          uri: lb://ENVIRONMENT-API
+          predicates:
+            - Path=/api/v1/ws/environment/**
+          filters:
+            - RewritePath=/api/v1/ws/environment(?<segment>.*), /ws/environment${segment}
+
         - id: auth-api
           uri: lb://AUTH-API
           predicates:
@@ -94,11 +122,19 @@ spring:
           predicates:
             - Path=/api/v1/rule/**
           filters:
-            - RewritePath=/api/v1/rule/(?<segment>.*), /rule/$1
+            - RewritePath=/api/v1/rule/(?<segment>.*), /rule/${segment}
 
         - id: ai-api
           uri: lb://AI-API
           predicates:
             - Path=/api/v1/ai/**
           filters:
-            - RewritePath=/api/v1/ai/(?<segment>.*), /ai/$1
+            - RewritePath=/api/v1/ai/(?<segment>.*), /ai/${segment}
+
+
+        - id: warnify-service
+          uri: lb://WARNIFY-SERVICE
+          predicates:
+            - Path=/api/v1/warnify/**
+          filters:
+            - RewritePath=/api/v1/warnify/(?<segment>.*), /warnify/${segment}
