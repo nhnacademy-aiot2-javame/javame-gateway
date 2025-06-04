@@ -1,21 +1,30 @@
 package com.nhnacademy.javamegateway.filter;
 
+import com.nhnacademy.javamegateway.IpUtil;
 import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.TokenExpiredException;
+import com.nhnacademy.javamegateway.repository.RefreshToken;
+import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import com.nhnacademy.javamegateway.token.JwtTokenValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -26,6 +35,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
      */
     private final JwtTokenValidator jwtTokenValidator;
 
+    /**
+     * RefreshToken 저장소.
+     */
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    /**
+     *  redis key 값에 추가할 prefix.
+     */
+    @Value("${token.prefix}")
+    private String tokenPrefix;
 
     /**
      * WHITE LIST 에 들어가는 url.
@@ -59,9 +78,58 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         // --- 2. WHITE_LIST 외의 경로만 토큰 검증 수행 ---
         log.debug("Gateway JWT Filter: Validating JWT for {}", path);
 
+        // 1) X-Refresh-Token 헤더가 있으면, 이 요청은 토큰 재발급 요청으로 간주
+        String refreshTokenHeader = request.getHeaders().getFirst("X-Refresh-Token");
+        if (StringUtils.hasText(refreshTokenHeader)) {
+            //Refresh Token이 유효하지 않을 때
+            String refreshToken = jwtTokenValidator.resolveRefreshTokenFromHeader(exchange);
+            if (!jwtTokenValidator.validateToken(refreshToken)) {
+                ServerHttpResponse response = exchange.getResponse();
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                response.getHeaders().add("X-Refresh-Required", "true");
+                return response.setComplete();
+            }
+
+            String userEmail = jwtTokenValidator.getUserEmailFromToken(refreshToken);
+            String userRole = jwtTokenValidator.getRoleIdFromToken(refreshToken);
+            String refreshTokenId = DigestUtils.sha256Hex(tokenPrefix + ":" + userEmail);
+
+            Optional<RefreshToken> optionalToken = refreshTokenRepository.findById(refreshTokenId);
+            if (optionalToken.isEmpty()) {
+                ServerHttpResponse response = exchange.getResponse();
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                response.getHeaders().add("X-Refresh-Required", "true");
+                return response.setComplete();
+            }
+
+            RefreshToken savedToken = optionalToken.get();
+            String requestIp = IpUtil.getClientIp(request);
+            String userAgent = request.getHeaders().getFirst("User-Agent");
+
+            if (!Objects.equals(savedToken.getIp(), requestIp)
+                    || !Objects.equals(savedToken.getUserAgent(), userAgent)) {
+
+                ServerHttpResponse response = exchange.getResponse();
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                response.getHeaders().add("X-Refresh-Required", "true");
+                return response.setComplete();
+            }
+            log.info("---Refresh_Token_재발급---");
+
+            ServerHttpRequest refreshRequest = request.mutate()
+                    .path("/auth/refresh")
+                    .header("X-User-Email", userEmail)  // 추가
+                    .header("X-User-Role", userRole)
+                    .build();
+
+            return chain.filter(exchange.mutate().request(refreshRequest).build());
+        }
+
         try {
             String token = jwtTokenValidator.resolveTokenFromHeader(exchange);
-
+            if (!jwtTokenValidator.validateToken(token)) {
+                throw new AccessTokenReissueRequiredException("Access token expired or invalid.");
+            }
             String role = jwtTokenValidator.getRoleIdFromToken(token);
             String userEmail = jwtTokenValidator.getUserEmailFromToken(token);
 
@@ -71,12 +139,40 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     .build();
 
             return chain.filter(exchange.mutate().request(mutateRequest).build());
-
         } catch (AccessTokenReissueRequiredException ex) {
-            log.debug("Access Token expired but refresh token valid. Reissue required.");
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            exchange.getResponse().getHeaders().add("X-Reissue-Required", "true");
-            return exchange.getResponse().setComplete();
+            log.debug("Access token expired. Checking refresh token...");
+
+            String refreshToken = jwtTokenValidator.resolveRefreshTokenFromHeader(exchange);
+            //Refresh Token이 없을 때
+            if (!StringUtils.hasText(refreshToken)) {
+                ServerHttpResponse response = exchange.getResponse();
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                response.getHeaders().add("X-Refresh-Required", "true");
+                return response.setComplete();
+            }
+
+            // refresh token 유효성 검증 및 재발급 처리 로직 (위에서 X-Refresh-Token 헤더 있을 때 처리했던 것과 유사)
+            if (!jwtTokenValidator.validateToken(refreshToken)) {
+                ServerHttpResponse response = exchange.getResponse();
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                response.getHeaders().add("X-Refresh-Required", "true");
+                return response.setComplete();
+            }
+
+            // refreshToken에서 이메일, 역할 등 꺼내기
+            String userEmail = jwtTokenValidator.getUserEmailFromToken(refreshToken);
+            String userRole = jwtTokenValidator.getRoleIdFromToken(refreshToken);
+            // refreshToken DB 체크 및 IP, UA 검증 등
+
+            // (필요시) mutate 요청 경로, 헤더 변경 후 체인에 넘기기
+            ServerHttpRequest refreshRequest = request.mutate()
+                    .path("/auth/refresh")
+                    .header("X-User-Email", userEmail)
+                    .header("X-User-Role", userRole)
+                    .build();
+
+            return chain.filter(exchange.mutate().request(refreshRequest).build());
+
         } catch (TokenExpiredException ex) {
             log.debug("Both tokens expired. Login required. ");
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);

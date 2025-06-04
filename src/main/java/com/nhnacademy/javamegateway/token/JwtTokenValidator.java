@@ -1,9 +1,7 @@
 package com.nhnacademy.javamegateway.token;
 
-import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
-import com.nhnacademy.javamegateway.exception.TokenExpiredException;
 import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -16,8 +14,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -99,6 +95,19 @@ public class JwtTokenValidator {
         throw new AuthenticationCredentialsNotFoundException("No token found in header or cookies");
     }
 
+    /**
+     * HTTP 요청 헤더에서 리프레시 토큰(Refresh Token)을 추출합니다.
+     *
+     * <p>이 메서드는 전달받은 {@link ServerWebExchange} 객체의 요청 헤더 중
+     * "X-Refresh-Token"이라는 이름의 헤더 값을 찾아 반환합니다.
+     * 해당 헤더가 존재하지 않을 경우 {@code null}을 반환합니다.</p>
+     *
+     * @param exchange 현재 HTTP 요청 정보를 담고 있는 ServerWebExchange 객체
+     * @return "X-Refresh-Token" 헤더의 값이 존재하면 해당 토큰 문자열, 없으면 {@code null}
+     */
+    public String resolveRefreshTokenFromHeader(ServerWebExchange exchange) {
+        return exchange.getRequest().getHeaders().getFirst("X-Refresh-Token");
+    }
 
     /**
      *
@@ -145,14 +154,17 @@ public class JwtTokenValidator {
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.warn("잘못된 JWT 서명입니다.");
+            return false;
         } catch (ExpiredJwtException e) {
             log.warn("만료된 JWT 토큰입니다.");
+            return false;
         } catch (UnsupportedJwtException e) {
             log.warn("지원되지 않는 JWT 토큰입니다.");
+            return false;
         } catch (IllegalArgumentException e) {
             log.warn("JWT 토큰이 잘못되었습니다.");
+            return false;
         }
-        return false;
     }
 
     /**

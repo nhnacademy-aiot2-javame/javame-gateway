@@ -64,10 +64,14 @@ spring:
               - PUT
               - DELETE
               - OPTIONS
+              - PATCH
             allowedHeaders: "*"
             exposedHeaders:
               - "Authorization"
-              - "Refresh-Token"
+              - "X-Refresh-Token"
+              - "X-Reauth-Required"
+              - "X-Token-Required"
+              - "X-Refresh-Required"
             allowCredentials: true
 
       routes:
