@@ -143,6 +143,6 @@ spring:
         - id: flask-api
           uri: http://flask-api:10283   # Flask 도커 이름으로 접근 (Docker Compose 기반)
           predicates:
-            - Path=/api/forecast/**
+            - Path=/api/v1/forecast/**
           filters:
-            - RewritePath=/api/forecast(?<segment>.*), /api/forecast${segment}
+            - RewritePath=/api/v1/forecast(?<segment>.*), /api/forecast${segment}

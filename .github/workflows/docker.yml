@@ -66,6 +66,7 @@ jobs:
               echo "GATEWAY_IMAGE_TAG=${{ env.GATEWAY_IMAGE_TAG }}" >> .env
               fi
               
+              SERVICE_NAME=javame-gateway
               docker-compose stop $SERVICE_NAME
               docker-compose rm -f $SERVICE_NAME
               docker-compose up -d $SERVICE_NAME
