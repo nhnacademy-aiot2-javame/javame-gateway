@@ -27,6 +27,17 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
      */
     private final JwtTokenValidator jwtTokenValidator;
 
+     /**
+     * RefreshToken 저장소.
+     */
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    /**
+     *  redis key 값에 추가할 prefix.
+     */
+    @Value("${token.prefix}")
+    private String tokenPrefix;
+
 
     /**
      * WHITE LIST 에 들어가는 url.
