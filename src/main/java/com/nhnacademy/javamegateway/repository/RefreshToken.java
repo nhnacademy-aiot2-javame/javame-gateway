@@ -21,21 +21,28 @@ public class RefreshToken {
     @JsonProperty
     private String refreshToken;
 
+    /**
+     * 사용자를 대신하여 작업을 수행하는 소프트웨어. 특히 웹 브라우저 같은 클라이언트 소프트웨어를 의미합니다.
+     */
+    @JsonProperty
+    private String userAgent;
+
+    /**
+     * 사용자의 IP 주소입니다.
+     */
+    @JsonProperty
+    private String ip;
+
+
     public RefreshToken() {
         // NoArgsConstructor
     }
 
-    public RefreshToken(String id, String refreshToken) {
+    public RefreshToken(String id, String refreshToken, String userAgent, String ip) {
         this.id = id;
         this.refreshToken = refreshToken;
-    }
-
-    @Override
-    public String toString() {
-        return "RefreshToken{" +
-                "id='" + id + '\'' +
-                ", refreshToken='" + refreshToken + '\'' +
-                '}';
+        this.userAgent = userAgent;
+        this.ip = ip;
     }
 
     public String getId() {
@@ -46,14 +53,25 @@ public class RefreshToken {
         return refreshToken;
     }
 
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
     @Override
-    public boolean equals(Object object) {
-        if (!(object instanceof RefreshToken that)) return false;
-        return Objects.equals(id, that.id) && Objects.equals(refreshToken, that.refreshToken);
+    public boolean equals(Object o) {
+        if (!(o instanceof RefreshToken that)) return false;
+        return Objects.equals(id, that.id)
+                && Objects.equals(refreshToken, that.refreshToken)
+                && Objects.equals(userAgent, that.userAgent)
+                && Objects.equals(ip, that.ip);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, refreshToken);
+        return Objects.hash(id, refreshToken, userAgent, ip);
     }
 }
