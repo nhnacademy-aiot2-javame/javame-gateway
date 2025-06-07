@@ -1,7 +1,9 @@
 package com.nhnacademy.javamegateway.token;
 
+import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
+import com.nhnacademy.javamegateway.exception.TokenExpiredException;
 import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -14,6 +16,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -67,32 +71,22 @@ public class JwtTokenValidator {
     }
 
     /**
-     * front 에서 HttpOnlyCookie로 넘겨준 accessToken, refreshToken을 꺼내 넘깁니다.
+     * front 에서 헤더로 넘겨준 accessToken, refreshToken을 꺼내 넘깁니다.
      *
      * @param exchange Gateway 에서 사용하는 WebFlux 전용 객체.
-     * @return Cookie 에서 추출한 토큰.
+     * @return Authorization header 에서 추출한 토큰.
      */
     public String resolveTokenFromHeader(ServerWebExchange exchange) {
         ServerHttpRequest request = exchange.getRequest();
         HttpHeaders headers = request.getHeaders();
-        System.out.println("header : " + headers);
+        log.info("header : {}", headers);
 
         String authorizationHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
-        String refreshTokenHeader = headers.getFirst("Refresh-Token");
 
         if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
-            String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
-            if (validateToken(accessToken)) {
-                return accessToken;
-            } else {
-                // accessToken 만료됨
-                throw new TokenExpiredException("AccessToken expired");
-            }
+            return authorizationHeader.substring(BEARER_PREFIX.length());
         }
-        if (exchange.getRequest().getCookies().containsKey("accessToken")) {
-            return exchange.getRequest().getCookies().getFirst("accessToken").getValue();
-        }
-        throw new AuthenticationCredentialsNotFoundException("No token found in header or cookies");
+        throw new AccessTokenReissueRequiredException("No token found in header");
     }
 
     /**
@@ -111,7 +105,7 @@ public class JwtTokenValidator {
 
     /**
      *
-     * @param token 쿠키에서 꺼낸 토큰입니다.
+     * @param token 헤더에서 꺼낸 토큰입니다.
      * @return 토큰에서 사용자 이메일값을 반환하는 메소드입니다.
      */
     public String getUserEmailFromToken(String token) {
@@ -122,7 +116,7 @@ public class JwtTokenValidator {
 
     /**
      *
-     * @param token 쿠키에서 꺼낸 토큰입니다.
+     * @param token 헤더에서 꺼낸 토큰입니다.
      * @return 토큰에서 사용자 역할을 반환하는 메소드입니다.
      */
     public String getRoleIdFromToken(String token) {
