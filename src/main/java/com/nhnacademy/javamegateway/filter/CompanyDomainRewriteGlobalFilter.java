@@ -50,7 +50,7 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
         String query = exchange.getRequest().getURI().getQuery();
 
         // path가 ws로 시작한다면 처리 제외
-        if (path.startsWith("/ws/")){
+        if (path.startsWith("/ws/")) {
             log.debug("CompanyDomain filter: Skipping WebSocket path: {}", path);
             return chain.filter(exchange);
         }
