@@ -16,9 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.net.URI;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,7 +36,8 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
     private JwtTokenValidator jwtTokenValidator;
 
     public CompanyDomainRewriteGlobalFilter(@Qualifier("loadBalancedWebClient")WebClient.Builder
-                                                    webClientBuilder, JwtTokenValidator jwtTokenValidator) {
+                                                    webClientBuilder,
+                                            JwtTokenValidator jwtTokenValidator) {
         this.webClient = webClientBuilder.baseUrl("http://MEMBER-API").build();
         this.jwtTokenValidator = jwtTokenValidator;
     }
@@ -96,14 +95,16 @@ public class CompanyDomainRewriteGlobalFilter implements GlobalFilter, Ordered {
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                         clientResponse -> clientResponse.bodyToMono(String.class)
                                 .flatMap(errorBody -> {
-                                    log.error("응답 에러 발생. 상태코드: {}, 바디: {}", clientResponse.statusCode(), errorBody);
+                                    log.error("응답 에러 발생. 상태코드: {}, 바디: {}",
+                                            clientResponse.statusCode(), errorBody);
                                     return Mono.error(new RuntimeException("요청 실패"));
                                 }))
                 .bodyToMono(String.class)
                 .doOnNext(rawJson -> log.debug("받은 MemberResponse 원본 JSON: {}", rawJson))
                 .flatMap(rawJson -> {
                     try {
-                        MemberResponse member = new ObjectMapper().readValue(rawJson, MemberResponse.class);
+                        MemberResponse member = new ObjectMapper().readValue(rawJson,
+                                MemberResponse.class);
                         String realDomain = member.getCompanyDomain();
                         log.debug("real Domain: {}", realDomain);
                         newSegments[index] = realDomain;
