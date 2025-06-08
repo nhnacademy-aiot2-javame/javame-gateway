@@ -19,7 +19,7 @@ public class RefreshToken {
      *  Redis에 담길 RefreshToken의 value값 입니다.
      */
     @JsonProperty
-    private String refreshToken;
+    private String token;
 
     /**
      * 사용자를 대신하여 작업을 수행하는 소프트웨어. 특히 웹 브라우저 같은 클라이언트 소프트웨어를 의미합니다.
@@ -38,9 +38,9 @@ public class RefreshToken {
         // NoArgsConstructor
     }
 
-    public RefreshToken(String id, String refreshToken, String userAgent, String ip) {
+    public RefreshToken(String id, String token, String userAgent, String ip) {
         this.id = id;
-        this.refreshToken = refreshToken;
+        this.token = token;
         this.userAgent = userAgent;
         this.ip = ip;
     }
@@ -49,8 +49,8 @@ public class RefreshToken {
         return id;
     }
 
-    public String getRefreshToken() {
-        return refreshToken;
+    public String getToken() {
+        return token;
     }
 
     public String getUserAgent() {
@@ -65,13 +65,13 @@ public class RefreshToken {
     public boolean equals(Object o) {
         if (!(o instanceof RefreshToken that)) return false;
         return Objects.equals(id, that.id)
-                && Objects.equals(refreshToken, that.refreshToken)
+                && Objects.equals(token, that.token)
                 && Objects.equals(userAgent, that.userAgent)
                 && Objects.equals(ip, that.ip);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, refreshToken, userAgent, ip);
+        return Objects.hash(id, token, userAgent, ip);
     }
 }
