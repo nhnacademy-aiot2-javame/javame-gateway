@@ -1,11 +1,7 @@
 package com.nhnacademy.javamegateway.token;
 
 import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
-import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
-import com.nhnacademy.javamegateway.exception.ServerWebExchangeIsNull;
-import com.nhnacademy.javamegateway.exception.TokenExpiredException;
-import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -15,7 +11,6 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -24,7 +19,6 @@ import org.springframework.web.server.ServerWebExchange;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
-import java.util.Objects;
 
 /**
  * Jwt 토큰 생성을 위한 Provider 클래스.
@@ -40,17 +34,6 @@ public class JwtTokenValidator {
      */
     private final Key key;
 
-    /**
-     *  redis key 값에 추가할 prefix.
-     */
-    @Value("${token.prefix}")
-    private String tokenPrefix;
-
-    /**
-     * Refresh Token 검증을 위한 Repository.
-     */
-    private final RefreshTokenRepository tokenRepository;
-
 
     /**
      *  Bearer 문자열을 상수로 정의.
@@ -63,13 +46,10 @@ public class JwtTokenValidator {
      * -> Key를 가지고 메시지 해쉬값(MAC)을 생성해서 내가 원하는 사용자로부터 메시지가 왔는지 판단.
      *
      * @param secretKey Base64로 인코딩된 비밀 키
-     * @param tokenRepository Redis와 연동한 Refresh Token Repository.
      */
-    public JwtTokenValidator(@Value("${jwt.secret}")String secretKey,
-                             RefreshTokenRepository tokenRepository) {
+    public JwtTokenValidator(@Value("${jwt.secret}")String secretKey) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey); //디코딩
         this.key = Keys.hmacShaKeyFor(keyBytes);
-        this.tokenRepository = tokenRepository;
     }
 
     /**

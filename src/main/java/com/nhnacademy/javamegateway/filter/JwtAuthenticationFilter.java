@@ -3,13 +3,11 @@ package com.nhnacademy.javamegateway.filter;
 import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
 import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.TokenExpiredException;
-import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import com.nhnacademy.javamegateway.token.JwtTokenDto;
 import com.nhnacademy.javamegateway.token.JwtTokenValidator;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -43,17 +41,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
      * WebClientConfig에 설정해놓은 builder.
      */
     private final WebClient.Builder loadBalancedWebClient;
-
-    /**
-     * RefreshToken 저장소.
-     */
-    private final RefreshTokenRepository refreshTokenRepository;
-
-    /**
-     *  redis key 값에 추가할 prefix.
-     */
-    @Value("${token.prefix}")
-    private String tokenPrefix;
 
     /**
      * WHITE LIST 에 들어가는 url.
