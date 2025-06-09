@@ -60,6 +60,7 @@ spring:
               - "https://gateway.javame.live"
               - "http://gateway.javame.live"
               - "http://s2.java21.net:10285"
+              - "http://127.0.0.1:10271"
             allowedMethods:
               - GET
               - POST
@@ -70,7 +71,10 @@ spring:
             allowedHeaders: "*"
             exposedHeaders:
               - "Authorization"
-              - "Refresh-Token"
+              - "X-Refresh-Token"
+              - "X-Reauth-Required"
+              - "X-Token-Required"
+              - "X-Refresh-Required"
             allowCredentials: true
 
       routes:
@@ -138,3 +142,10 @@ spring:
             - Path=/api/v1/warnify/**
           filters:
             - RewritePath=/api/v1/warnify/(?<segment>.*), /warnify/${segment}
+
+        - id: forecast-api
+          uri: http://javame-forecast-api:10283   # Flask 도커 이름으로 접근 (Docker Compose 기반)
+          predicates:
+            - Path=/api/v1/forecast/**
+          filters:
+            - RewritePath=/api/v1/forecast(?<segment>.*), /api/forecast${segment}

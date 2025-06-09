@@ -1,11 +1,7 @@
 package com.nhnacademy.javamegateway.token;
 
 import com.nhnacademy.javamegateway.exception.AccessTokenReissueRequiredException;
-import com.nhnacademy.javamegateway.exception.AuthenticationCredentialsNotFoundException;
 import com.nhnacademy.javamegateway.exception.MissingTokenException;
-import com.nhnacademy.javamegateway.exception.ServerWebExchangeIsNull;
-import com.nhnacademy.javamegateway.exception.TokenExpiredException;
-import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -15,7 +11,6 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -24,7 +19,6 @@ import org.springframework.web.server.ServerWebExchange;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
-import java.util.Objects;
 
 /**
  * Jwt 토큰 생성을 위한 Provider 클래스.
@@ -40,17 +34,6 @@ public class JwtTokenValidator {
      */
     private final Key key;
 
-    /**
-     *  redis key 값에 추가할 prefix.
-     */
-    @Value("${token.prefix}")
-    private String tokenPrefix;
-
-    /**
-     * Refresh Token 검증을 위한 Repository.
-     */
-    private final RefreshTokenRepository tokenRepository;
-
 
     /**
      *  Bearer 문자열을 상수로 정의.
@@ -63,51 +46,49 @@ public class JwtTokenValidator {
      * -> Key를 가지고 메시지 해쉬값(MAC)을 생성해서 내가 원하는 사용자로부터 메시지가 왔는지 판단.
      *
      * @param secretKey Base64로 인코딩된 비밀 키
-     * @param tokenRepository Redis와 연동한 Refresh Token Repository.
      */
-    public JwtTokenValidator(@Value("${jwt.secret}")String secretKey,
-                             RefreshTokenRepository tokenRepository) {
+    public JwtTokenValidator(@Value("${jwt.secret}")String secretKey) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey); //디코딩
         this.key = Keys.hmacShaKeyFor(keyBytes);
-        this.tokenRepository = tokenRepository;
     }
 
     /**
-     * front 에서 HttpOnlyCookie로 넘겨준 accessToken, refreshToken을 꺼내 넘깁니다.
+     * front 에서 헤더로 넘겨준 accessToken, refreshToken을 꺼내 넘깁니다.
      *
      * @param exchange Gateway 에서 사용하는 WebFlux 전용 객체.
-     * @return Cookie 에서 추출한 토큰.
+     * @return Authorization header 에서 추출한 토큰.
      */
     public String resolveTokenFromHeader(ServerWebExchange exchange) {
-        if (Objects.isNull(exchange)) {
-            throw new ServerWebExchangeIsNull("들어온 요청 값이 없습니다.");
-        }
         ServerHttpRequest request = exchange.getRequest();
         HttpHeaders headers = request.getHeaders();
-        System.out.println("header : " + headers);
+        log.info("header : {}", headers);
 
         String authorizationHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
-        String refreshTokenHeader = headers.getFirst("Refresh-Token");
 
         if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
-            String accessToken = authorizationHeader.substring(BEARER_PREFIX.length());
-            if (validateToken(accessToken)) {
-                return accessToken;
-            } else {
-                // accessToken 만료됨
-                throw new TokenExpiredException("AccessToken expired");
-            }
+            return authorizationHeader.substring(BEARER_PREFIX.length());
         }
-        if (exchange.getRequest().getCookies().containsKey("accessToken")) {
-            return exchange.getRequest().getCookies().getFirst("accessToken").getValue();
-        }
-        throw new AuthenticationCredentialsNotFoundException("No token found in header or cookies");
+        throw new AccessTokenReissueRequiredException("No token found in header");
+    }
+
+    /**
+     * HTTP 요청 헤더에서 리프레시 토큰(Refresh Token)을 추출합니다.
+     *
+     * <p>이 메서드는 전달받은 {@link ServerWebExchange} 객체의 요청 헤더 중
+     * "X-Refresh-Token"이라는 이름의 헤더 값을 찾아 반환합니다.
+     * 해당 헤더가 존재하지 않을 경우 {@code null}을 반환합니다.</p>
+     *
+     * @param exchange 현재 HTTP 요청 정보를 담고 있는 ServerWebExchange 객체
+     * @return "X-Refresh-Token" 헤더의 값이 존재하면 해당 토큰 문자열, 없으면 {@code null}
+     */
+    public String resolveRefreshTokenFromHeader(ServerWebExchange exchange) {
+        return exchange.getRequest().getHeaders().getFirst("X-Refresh-Token");
     }
 
 
     /**
      *
-     * @param token 쿠키에서 꺼낸 토큰입니다.
+     * @param token 헤더에서 꺼낸 토큰입니다.
      * @return 토큰에서 사용자 이메일값을 반환하는 메소드입니다.
      */
     public String getUserEmailFromToken(String token) {
@@ -118,25 +99,13 @@ public class JwtTokenValidator {
 
     /**
      *
-     * @param token 쿠키에서 꺼낸 토큰입니다.
+     * @param token 헤더에서 꺼낸 토큰입니다.
      * @return 토큰에서 사용자 역할을 반환하는 메소드입니다.
      */
     public String getRoleIdFromToken(String token) {
         validateTokenPresence(token);
         Claims claims = parseValidClaims(token);
         return claims.get("role", String.class);
-    }
-
-    /**
-     * Redis에 존재하는 Refresh 토큰인지 검증합니다. 여기서 false 값이 나오면 이미 삭제한 Refresh 토큰입니다.
-     * @param refreshToken 검증할 refreshToken.
-     * @return true, false.
-     */
-    public boolean validateRefreshFromRedis(String refreshToken) {
-        validateTokenPresence(refreshToken);
-        String userId = getUserEmailFromToken(refreshToken);
-        String refreshTokenId = DigestUtils.sha256Hex(tokenPrefix + ":" + userId);
-        return tokenRepository.existsById(refreshTokenId);
     }
 
     /**
@@ -150,19 +119,22 @@ public class JwtTokenValidator {
             return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.warn("잘못된 JWT 서명입니다.");
+            return false;
         } catch (ExpiredJwtException e) {
             log.warn("만료된 JWT 토큰입니다.");
+            return false;
         } catch (UnsupportedJwtException e) {
             log.warn("지원되지 않는 JWT 토큰입니다.");
+            return false;
         } catch (IllegalArgumentException e) {
             log.warn("JWT 토큰이 잘못되었습니다.");
+            return false;
         }
-        return false;
     }
 
     /**
      * 토큰 값이 비어있는지 null 값인지 검증하는 메소드입니다.
-     * @param token 쿠키에서 꺼낸 토큰값입니다.
+     * @param token 헤더에서 꺼낸 토큰값입니다.
      */
     private void validateTokenPresence(String token) {
         if (token == null || token.isBlank()) {
@@ -172,7 +144,7 @@ public class JwtTokenValidator {
 
     /**
      * JWT를 Parse 하는 메소드입니다.
-     * @param token 쿠키에서 꺼낸 jwt 토큰입니다.
+     * @param token 헤더에서 꺼낸 jwt 토큰입니다.
      * @return 정보값이 들어있는 claims를 반환합니다.
      */
     private Claims parseValidClaims(String token) {
