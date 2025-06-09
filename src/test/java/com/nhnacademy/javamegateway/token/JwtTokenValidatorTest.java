@@ -2,24 +2,19 @@ package com.nhnacademy.javamegateway.token;
 
 import com.nhnacademy.javamegateway.exception.ServerWebExchangeIsNull;
 import com.nhnacademy.javamegateway.exception.TokenExpiredException;
-import com.nhnacademy.javamegateway.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,9 +22,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JwtTokenValidatorTest {
-
-    @Mock
-    private RefreshTokenRepository tokenRepository;
 
     @Mock
     private ServerWebExchange exchange;
@@ -53,7 +45,7 @@ class JwtTokenValidatorTest {
 
     @BeforeEach
     void setUp() {
-        jwtTokenValidator = new JwtTokenValidator(secretKey, tokenRepository);
+        jwtTokenValidator = new JwtTokenValidator(secretKey);
     }
 
     @Test
